@@ -6,7 +6,7 @@ import T from "../src/TOKENS.bend";
 const px = (n) => n + "px";
 
 const VARS = {
-  "--space-0": () => px(T.space_0()), "--space-1": () => px(T.space_1()),
+  "--space-0": () => px(T.space_0()), "--space-hairline": () => px(T.space_hairline()), "--space-1": () => px(T.space_1()),
   "--space-2": () => px(T.space_2()), "--space-3": () => px(T.space_3()),
   "--space-4": () => px(T.space_4()), "--space-5": () => px(T.space_5()),
   "--space-6": () => px(T.space_6()), "--space-7": () => px(T.space_7()),

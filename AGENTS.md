@@ -28,7 +28,7 @@ Se uma tarefa parecer exigir mudar um desses arquivos, pare e pergunte.
 **2. Tokens em Bend + um botão.** ✅ Feito: `src/TOKENS.bend`, `LAWS.bend`, `SPEC.bend`, `PROOF.bend`, `web/`.
 - `src/TOKENS.bend`: os valores de `spec/tokens.css` (espaço, raio, tipo, cor, controles; só o tema claro por enquanto).
 - **Proposta** de `LAWS.bend` com, no mínimo:
-  - Todo espaçamento usado pertence à escala (4, 8, 12, 16, 24, 32, 48, 64).
+  - Todo espaçamento usado pertence à escala (2, 4, 8, 12, 16, 24, 32, 48, 64; o 2 é o hairline).
   - Raio aninhado: raio externo = raio interno + padding (ex.: segmented, 6 = 4 + 2).
   - Altura de controle pertence a {24, 30, 36}.
 - `PROOF.bend` provando essas laws.

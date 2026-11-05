@@ -9,6 +9,7 @@
      Base 4px. Escala fechada: só esses valores existem.
      Regra: espaço DENTRO de um grupo < espaço ENTRE grupos. */
   --space-0: 0;
+  --space-hairline: 2px; /* respiro interno de controles aninhados (segmented) */
   --space-1: 4px;   /* ícone ↔ texto, itens colados */
   --space-2: 8px;   /* gap entre controles relacionados */
   --space-3: 12px;  /* padding horizontal de controle */

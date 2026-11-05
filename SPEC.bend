@@ -3,9 +3,9 @@
 
 import Base
 
-# A escala de espaçamento: 0, 4, 8, 12, 16, 24, 32, 48, 64.
+# A escala de espaçamento: 0, 2 (hairline), 4, 8, 12, 16, 24, 32, 48, 64.
 def in_space_scale(+n: U32) -> Bool:
-  (U32.is_eq(n, 0) || U32.is_eq(n, 4) || U32.is_eq(n, 8) || U32.is_eq(n, 12)
+  (U32.is_eq(n, 0) || U32.is_eq(n, 2) || U32.is_eq(n, 4) || U32.is_eq(n, 8) || U32.is_eq(n, 12)
     || U32.is_eq(n, 16) || U32.is_eq(n, 24) || U32.is_eq(n, 32)
     || U32.is_eq(n, 48) || U32.is_eq(n, 64))
 

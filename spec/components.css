@@ -64,12 +64,12 @@ body {
 .field__label { font-size: var(--text-sm); color: var(--text-2); font-weight: var(--weight-medium); }
 
 /* ---------- Segmented ----------
-   Demonstração da fórmula: container radius-md (6) com padding 2
+   Demonstração da fórmula: container radius-md (6) com padding hairline (2)
    → item interno radius-sm (4). 6 = 4 + 2. */
 .segmented {
   display: inline-flex;
-  padding: 2px;
-  gap: 2px;
+  padding: var(--space-hairline);
+  gap: var(--space-hairline);
   border-radius: var(--radius-md);
   background: var(--surface-2);
   border: var(--border-width) solid var(--border);

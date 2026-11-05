@@ -12,6 +12,9 @@ def Laws.panel_padding_in_scale():
 def Laws.btn_height_in_scale():
   {==}
 
+def Laws.segmented_padding_in_scale():
+  {==}
+
 def Laws.segmented_radius_nested():
   {==}
 

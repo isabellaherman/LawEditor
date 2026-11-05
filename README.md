@@ -36,8 +36,9 @@ cd web && bun index.html             # abre a página; os tokens vêm de src/TOK
 
 | Law | O que garante |
 |---|---|
-| `btn_padding_in_scale` | Padding do botão está na escala (4, 8, 12, 16, 24, 32, 48, 64) |
+| `btn_padding_in_scale` | Padding do botão está na escala (2, 4, 8, 12, 16, 24, 32, 48, 64) |
 | `panel_padding_in_scale` | Padding do painel está na escala |
+| `segmented_padding_in_scale` | Padding do segmented está na escala |
 | `btn_height_in_scale` | Altura do botão é 24, 30 ou 36 |
 | `segmented_radius_nested` | Raio externo = raio interno + padding |
 | `inside_less_than_between` | Espaço dentro do grupo < espaço entre grupos |

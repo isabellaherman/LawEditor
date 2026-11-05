@@ -4,6 +4,7 @@ import Base
 
 # Espaçamento
 def space_0() -> U32: 0
+def space_hairline() -> U32: 2
 def space_1() -> U32: 4
 def space_2() -> U32: 8
 def space_3() -> U32: 12
@@ -31,7 +32,7 @@ def btn_radius() -> U32: radius_md()
 def panel_padding() -> U32: space_4()
 def field_gap() -> U32: space_1()
 def form_gap() -> U32: space_4()
-def segmented_padding() -> U32: 2
+def segmented_padding() -> U32: space_hairline()
 def segmented_outer_radius() -> U32: radius_md()
 def segmented_inner_radius() -> U32: radius_sm()
 

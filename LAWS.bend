@@ -16,6 +16,10 @@ law panel_padding_in_scale:
 law btn_height_in_scale:
   {Spec.in_control_scale(T.btn_height()) == True{} : Bool}
 
+# LAW: o padding do segmented pertence à escala de espaçamento.
+law segmented_padding_in_scale:
+  {Spec.in_space_scale(T.segmented_padding()) == True{} : Bool}
+
 # LAW: raio aninhado. Raio externo = raio interno + padding.
 law segmented_radius_nested:
   {U32.is_eq(T.segmented_outer_radius(),
