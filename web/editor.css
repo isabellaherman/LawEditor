@@ -1,5 +1,5 @@
-/* GDD Editor — estilos do produto, não da lib.
-   Quando outra ferramenta precisar de algo daqui, move pra components.css. */
+/* LawEditor — estilos só deste produto. Componentes e tokens vêm do bend-ui.
+   Quando outra ferramenta precisar de algo daqui, move pro bend-ui. */
 
 
 .doc {
