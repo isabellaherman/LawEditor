@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOC UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="gdd-editor.css">
+<style>
+  /* estilos só desta página de referência */
+  .ks { max-width: 1100px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+  .ks h1 { font-size: var(--text-2xl); margin: 0 0 var(--space-1); }
+  .ks > p { color: var(--text-2); margin: 0 0 var(--space-7); }
+  .ks h2 { font-size: var(--text-md); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); margin: var(--space-7) 0 var(--space-3); }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-2); }
+  .swatch { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+  .swatch div { height: 44px; }
+  .swatch span { display: block; padding: var(--space-1) var(--space-2); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-2); }
+  .space-row { display: flex; align-items: center; gap: var(--space-3); font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-2); margin-bottom: var(--space-1); }
+  .space-row b { display: block; height: 12px; background: var(--accent); border-radius: var(--radius-xs); }
+  .space-row code { width: 90px; }
+  .radius-box { width: 64px; height: 64px; background: var(--accent-soft); border: 1px solid var(--accent); }
+  .nest { display: inline-block; padding: var(--space-2); border-radius: var(--radius-lg); background: var(--surface-2); border: 1px solid var(--border); }
+  .nest > div { width: 140px; height: 56px; background: var(--surface); border: 1px solid var(--border-strong); }
+  .demo-app { height: 620px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); }
+  .note { font-size: var(--text-sm); color: var(--text-2); margin-top: var(--space-2); }
+</style>
+</head>
+<body>
+<div class="ks">
+  <h1>HOC UI</h1>
+  <p>Tokens e primitivos para as ferramentas do ecossistema Bend. Primeiro caso de uso: Editor de texto GDD.</p>
+
+  <h2>Editor GDD — composição</h2>
+  <div class="demo-app">
+    <div class="app">
+      <div class="toolbar">
+        <button class="btn btn--ghost btn--sm">GDD / Combate</button>
+        <div class="toolbar__sep"></div>
+        <div class="segmented" role="group">
+          <button aria-pressed="true">Texto</button>
+          <button aria-pressed="false">LAWs</button>
+          <button aria-pressed="false">Bend</button>
+        </div>
+        <div class="toolbar__spacer"></div>
+        <span class="tag tag--law">14 LAWs</span>
+        <span class="tag tag--draft">3 afirmações</span>
+        <span class="tag tag--conflict">1 conflito</span>
+        <div class="toolbar__sep"></div>
+        <button class="btn btn--primary btn--sm">Formalizar <span class="kbd" style="border-color:transparent;color:inherit">⌘L</span></button>
+      </div>
+
+      <nav class="sidebar">
+        <div class="nav-label">Documento</div>
+        <div class="nav-item">Visão geral <span class="nav-item__count">4</span></div>
+        <div class="nav-item" aria-current="true">Combate <span class="nav-item__count">7</span></div>
+        <div class="nav-item">Cartas <span class="nav-item__count">3</span></div>
+        <div class="nav-item">Animação <span class="nav-item__count">0</span></div>
+        <div class="nav-label" style="margin-top:var(--space-3)">LAWs</div>
+        <div class="nav-item">Todas <span class="nav-item__count">14</span></div>
+        <div class="nav-item">Conflitos <span class="nav-item__count">1</span></div>
+      </nav>
+
+      <main class="main">
+        <article class="doc">
+          <h1>Combate</h1>
+          <div class="doc__meta">Editado agora · 7 LAWs nesta seção</div>
+          <p>O combate acontece em turnos alternados entre o jogador e a masmorra. <span class="claim">O jogador sempre começa o turno com 5 cartas na mão.</span> Cartas não usadas são descartadas no fim do turno.</p>
+
+          <div class="law">
+            <span class="law__id">L-012</span>
+            <span class="law__text">A vida do jogador nunca é maior que a vida máxima.</span>
+            <code class="law__formal">∀ s. s.player.hp ≤ s.player.max_hp</code>
+          </div>
+
+          <div class="law law--conflict">
+            <span class="law__id">L-013</span>
+            <span class="law__text">Cura pode ultrapassar a vida máxima como escudo temporário.</span>
+            <code class="law__formal">contradiz L-012 · resolver no inspector →</code>
+          </div>
+
+          <h2>Animação de ataque</h2>
+          <p>Todo ataque tem antecipação, impacto e recuperação. <span class="claim">O impacto acontece exatamente no frame 6.</span></p>
+        </article>
+      </main>
+
+      <aside class="inspector">
+        <div class="field">
+          <span class="field__label">Afirmação selecionada</span>
+          <div style="font-size:var(--text-md)">O jogador sempre começa o turno com 5 cartas na mão.</div>
+        </div>
+        <div class="field">
+          <span class="field__label">ID</span>
+          <input class="input input--mono" value="L-015">
+        </div>
+        <div class="field">
+          <span class="field__label">Forma Bend</span>
+          <input class="input input--mono" value="turn_start(s) → len(s.hand) == 5">
+        </div>
+        <div class="row">
+          <button class="btn btn--primary">Criar LAW</button>
+          <button class="btn btn--ghost">Ignorar</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <h2>Cor</h2>
+  <div class="grid">
+    <div class="swatch"><div style="background:var(--bg)"></div><span>--bg</span></div>
+    <div class="swatch"><div style="background:var(--surface)"></div><span>--surface</span></div>
+    <div class="swatch"><div style="background:var(--surface-2)"></div><span>--surface-2</span></div>
+    <div class="swatch"><div style="background:var(--border-strong)"></div><span>--border-strong</span></div>
+    <div class="swatch"><div style="background:var(--text)"></div><span>--text</span></div>
+    <div class="swatch"><div style="background:var(--accent)"></div><span>--accent</span></div>
+    <div class="swatch"><div style="background:var(--law)"></div><span>--law</span></div>
+    <div class="swatch"><div style="background:var(--draft)"></div><span>--draft</span></div>
+    <div class="swatch"><div style="background:var(--conflict)"></div><span>--conflict</span></div>
+  </div>
+
+  <h2>Espaçamento (base 4)</h2>
+  <div class="space-row"><code>--space-1</code><b style="width:4px"></b>4</div>
+  <div class="space-row"><code>--space-2</code><b style="width:8px"></b>8</div>
+  <div class="space-row"><code>--space-3</code><b style="width:12px"></b>12</div>
+  <div class="space-row"><code>--space-4</code><b style="width:16px"></b>16</div>
+  <div class="space-row"><code>--space-5</code><b style="width:24px"></b>24</div>
+  <div class="space-row"><code>--space-6</code><b style="width:32px"></b>32</div>
+  <div class="space-row"><code>--space-7</code><b style="width:48px"></b>48</div>
+  <div class="space-row"><code>--space-8</code><b style="width:64px"></b>64</div>
+
+  <h2>Raio e aninhamento</h2>
+  <div class="row" style="gap:var(--space-4)">
+    <div class="radius-box" style="border-radius:var(--radius-sm)"></div>
+    <div class="radius-box" style="border-radius:var(--radius-md)"></div>
+    <div class="radius-box" style="border-radius:var(--radius-lg)"></div>
+    <div class="nest"><div style="border-radius:2px"></div></div>
+  </div>
+  <p class="note">Caixa aninhada: externo 10px = interno 2px + padding 8px. Curvas paralelas, sem "dente" no canto.</p>
+
+  <h2>Controles</h2>
+  <div class="row">
+    <button class="btn btn--primary">Primário</button>
+    <button class="btn">Padrão</button>
+    <button class="btn btn--ghost">Ghost</button>
+    <button class="btn btn--sm">Pequeno</button>
+    <button class="btn btn--icon" aria-label="Adicionar">+</button>
+    <input class="input" placeholder="Input">
+    <div class="segmented" role="group"><button aria-pressed="true">Um</button><button aria-pressed="false">Dois</button></div>
+  </div>
+
+  <h2>Tags</h2>
+  <div class="row">
+    <span class="tag">neutro</span>
+    <span class="tag tag--law">LAW</span>
+    <span class="tag tag--draft">afirmação</span>
+    <span class="tag tag--conflict">conflito</span>
+    <span class="tag tag--mono">L-012</span>
+    <span class="kbd">⌘L</span>
+  </div>
+</div>
+</body>
+</html>

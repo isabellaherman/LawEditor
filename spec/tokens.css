@@ -1,0 +1,108 @@
+/* ==========================================================
+   HOC UI — tokens.css
+   Única fonte de verdade visual. Nada de número solto no CSS:
+   se precisar de um valor, ele vem daqui.
+   ========================================================== */
+
+:root {
+  /* ---------- Espaçamento ----------
+     Base 4px. Escala fechada: só esses valores existem.
+     Regra: espaço DENTRO de um grupo < espaço ENTRE grupos. */
+  --space-0: 0;
+  --space-1: 4px;   /* ícone ↔ texto, itens colados */
+  --space-2: 8px;   /* gap entre controles relacionados */
+  --space-3: 12px;  /* padding horizontal de controle */
+  --space-4: 16px;  /* padding de painel, gap entre blocos */
+  --space-5: 24px;  /* separação entre seções */
+  --space-6: 32px;  /* margem de página */
+  --space-7: 48px;  /* respiro entre áreas grandes */
+  --space-8: 64px;
+
+  /* ---------- Raio ----------
+     Pequenos de propósito: ferramenta, não app de banco.
+     Fórmula de aninhamento: raio_externo = raio_interno + padding
+     ex.: segmented (padding 2px) → 4px dentro, 6px fora. */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 999px;
+
+  /* ---------- Tipografia ---------- */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;   /* UI padrão de ferramenta */
+  --text-lg: 15px;   /* corpo do documento */
+  --text-xl: 18px;
+  --text-2xl: 24px;
+
+  --leading-tight: 1.25;
+  --leading-ui: 1.4;
+  --leading-body: 1.65; /* texto longo do GDD */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --measure: 68ch;   /* largura máxima de leitura do documento */
+
+  /* ---------- Controles ----------
+     Altura fixa = alinhamento automático em toolbars. */
+  --control-sm: 24px;
+  --control-md: 30px;
+  --control-lg: 36px;
+
+  /* ---------- Bordas e elevação ----------
+     Borda > sombra. Sombra só pra coisa que flutua (menu, popover). */
+  --border-width: 1px;
+  --shadow-float: 0 4px 16px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(0 0 0 / 0.04);
+
+  --duration: 120ms;
+
+  /* ---------- Cor (claro) ---------- */
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-2: #f4f4f2;
+  --border: #e6e5e1;
+  --border-strong: #cfcdc7;
+  --text: #1c1b19;
+  --text-2: #5f5d58;
+  --text-3: #8f8c86;
+
+  --accent: #3b5bdb;
+  --accent-fg: #ffffff;
+  --accent-soft: #eef1fd;
+
+  /* Estados de uma frase no GDD */
+  --law: #2b8a3e;          /* virou LAW */
+  --law-soft: #ebf6ed;
+  --draft: #b7791f;        /* afirmação ainda não formalizada */
+  --draft-soft: #fbf3e4;
+  --conflict: #c92a2a;     /* contradiz outra LAW */
+  --conflict-soft: #fdecec;
+}
+
+/* Claro é o padrão. Escuro só se pedir: <html data-theme="dark"> */
+:root[data-theme="dark"] {
+  --bg: #141413;
+  --surface: #1b1b1a;
+  --surface-2: #242422;
+  --border: #2e2e2c;
+  --border-strong: #42413e;
+  --text: #ecebe8;
+  --text-2: #a8a6a0;
+  --text-3: #75736e;
+  --accent: #7b93f0;
+  --accent-fg: #0f1220;
+  --accent-soft: #1e2440;
+  --law: #5cc274;
+  --law-soft: #17271b;
+  --draft: #e0a94a;
+  --draft-soft: #2a2215;
+  --conflict: #f07171;
+  --conflict-soft: #2d1818;
+  --shadow-float: 0 4px 16px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+}
