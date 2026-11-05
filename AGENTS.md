@@ -30,7 +30,7 @@ Se uma tarefa parecer exigir mudar um desses arquivos, pare e pergunte.
 - **Proposta** de `LAWS.bend` com, no mínimo:
   - Todo espaçamento usado pertence à escala (2, 4, 8, 12, 16, 24, 32, 48, 64; o 2 é o hairline).
   - Raio aninhado: raio externo = raio interno + padding (ex.: segmented, 6 = 4 + 2).
-  - Altura de controle pertence a {24, 30, 36}.
+  - Altura de controle pertence a {24, 32, 36}.
 - `PROOF.bend` provando essas laws.
 - JS que lê os tokens do Bend e escreve as variáveis CSS (`--space-1`, …) no `:root`.
 - Uma página com **um** `.btn--primary` usando `spec/components.css`, idêntico ao do `spec/index.html`.

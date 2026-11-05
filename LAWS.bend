@@ -20,6 +20,16 @@ law btn_height_in_scale:
 law segmented_padding_in_scale:
   {Spec.in_space_scale(T.segmented_padding()) == True{} : Bool}
 
+# LAW: botão só de ícone encaixa nos três tamanhos.
+law icon_button_sm_fits:
+  {Spec.icon_button_fits(T.control_sm(), T.icon_btn_sm_icon(), T.icon_btn_sm_padding()) == True{} : Bool}
+
+law icon_button_md_fits:
+  {Spec.icon_button_fits(T.control_md(), T.icon_btn_md_icon(), T.icon_btn_md_padding()) == True{} : Bool}
+
+law icon_button_lg_fits:
+  {Spec.icon_button_fits(T.control_lg(), T.icon_btn_lg_icon(), T.icon_btn_lg_padding()) == True{} : Bool}
+
 # LAW: raio aninhado. Raio externo = raio interno + padding.
 law segmented_radius_nested:
   {U32.is_eq(T.segmented_outer_radius(),

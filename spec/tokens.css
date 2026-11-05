@@ -53,8 +53,16 @@
   /* ---------- Controles ----------
      Altura fixa = alinhamento automático em toolbars. */
   --control-sm: 24px;
-  --control-md: 30px;
+  --control-md: 32px;
   --control-lg: 36px;
+
+  /* ---------- Ícones ----------
+     Botão só de ícone: ícone + 2 × padding = altura do controle.
+     sm 24 = 16 + 4 + 4 · md 32 = 16 + 8 + 8 · lg 36 = 20 + 8 + 8 */
+  --icon-sm: 14px;   /* dentro de tags */
+  --icon-md: 16px;   /* padrão */
+  --icon-lg: 20px;
+  --icon-stroke: 1.75;
 
   /* ---------- Bordas e elevação ----------
      Borda > sombra. Sombra só pra coisa que flutua (menu, popover). */

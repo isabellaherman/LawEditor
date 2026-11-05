@@ -27,10 +27,28 @@
   .nest { display: inline-block; padding: var(--space-2); border-radius: var(--radius-lg); background: var(--surface-2); border: 1px solid var(--border); }
   .nest > div { width: 140px; height: 56px; background: var(--surface); border: 1px solid var(--border-strong); }
   .demo-app { height: 620px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); }
+  .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(152px, 1fr)); gap: var(--space-2); }
+  .icon-cell { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text); }
+  .icon-cell span { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-2); }
   .note { font-size: var(--text-sm); color: var(--text-2); margin-top: var(--space-2); }
 </style>
 </head>
 <body>
+<!-- Ícones: Lucide (ISC), ver spec/ICONS-LICENSE -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14" /><path d="M12 5v14" /></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18" /><path d="m19 8 3 8a5 5 0 0 1-6 0zV7" /><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1" /><path d="m5 8 3 8a5 5 0 0 1-6 0zV7" /><path d="M7 21h10" /></symbol>
+<symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></symbol>
+<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m16 9-5.5 5.5L8 12" /></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h.01" /><path d="M3 12h.01" /><path d="M3 19h.01" /><path d="M8 5h13" /><path d="M8 12h13" /><path d="M8 19h13" /></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6" /><path d="m8 6-6 6 6 6" /></symbol>
+<symbol id="i-wand-sparkles" viewBox="0 0 24 24"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></symbol>
+<symbol id="i-panel-left" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M9 3v18" /></symbol>
+</svg>
 <div class="ks">
   <h1>HOC UI</h1>
   <p>Tokens e primitivos para as ferramentas do ecossistema Bend. Primeiro caso de uso: Editor de texto GDD.</p>
@@ -39,7 +57,8 @@
   <div class="demo-app">
     <div class="app">
       <div class="toolbar">
-        <button class="btn btn--ghost btn--sm">GDD / Combate</button>
+        <button class="btn btn--ghost btn--icon" aria-label="Painel lateral"><svg class="icon" aria-hidden="true"><use href="#i-panel-left"/></svg></button>
+        <button class="btn btn--ghost btn--sm">GDD / Combate <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
         <div class="toolbar__sep"></div>
         <div class="segmented" role="group">
           <button aria-pressed="true">Texto</button>
@@ -47,22 +66,23 @@
           <button aria-pressed="false">Bend</button>
         </div>
         <div class="toolbar__spacer"></div>
-        <span class="tag tag--law">14 LAWs</span>
+        <button class="btn btn--ghost btn--icon" aria-label="Buscar"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></button>
+        <span class="tag tag--law"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-circle-check"/></svg>14 LAWs</span>
         <span class="tag tag--draft">3 afirmações</span>
-        <span class="tag tag--conflict">1 conflito</span>
+        <span class="tag tag--conflict"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-triangle-alert"/></svg>1 conflito</span>
         <div class="toolbar__sep"></div>
-        <button class="btn btn--primary btn--sm">Formalizar <span class="kbd" style="border-color:transparent;color:inherit">⌘L</span></button>
+        <button class="btn btn--primary btn--sm"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-wand-sparkles"/></svg>Formalizar <span class="kbd" style="border-color:transparent;color:inherit">⌘L</span></button>
       </div>
 
       <nav class="sidebar">
         <div class="nav-label">Documento</div>
-        <div class="nav-item">Visão geral <span class="nav-item__count">4</span></div>
-        <div class="nav-item" aria-current="true">Combate <span class="nav-item__count">7</span></div>
-        <div class="nav-item">Cartas <span class="nav-item__count">3</span></div>
-        <div class="nav-item">Animação <span class="nav-item__count">0</span></div>
+        <div class="nav-item"><span class="nav-item__label"><svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg>Visão geral</span> <span class="nav-item__count">4</span></div>
+        <div class="nav-item" aria-current="true"><span class="nav-item__label"><svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg>Combate</span> <span class="nav-item__count">7</span></div>
+        <div class="nav-item"><span class="nav-item__label"><svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg>Cartas</span> <span class="nav-item__count">3</span></div>
+        <div class="nav-item"><span class="nav-item__label"><svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg>Animação</span> <span class="nav-item__count">0</span></div>
         <div class="nav-label" style="margin-top:var(--space-3)">LAWs</div>
-        <div class="nav-item">Todas <span class="nav-item__count">14</span></div>
-        <div class="nav-item">Conflitos <span class="nav-item__count">1</span></div>
+        <div class="nav-item"><span class="nav-item__label"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Todas</span> <span class="nav-item__count">14</span></div>
+        <div class="nav-item"><span class="nav-item__label"><svg class="icon" aria-hidden="true"><use href="#i-triangle-alert"/></svg>Conflitos</span> <span class="nav-item__count">1</span></div>
       </nav>
 
       <main class="main">
@@ -102,7 +122,7 @@
           <input class="input input--mono" value="turn_start(s) → len(s.hand) == 5">
         </div>
         <div class="row">
-          <button class="btn btn--primary">Criar LAW</button>
+          <button class="btn btn--primary"><svg class="icon" aria-hidden="true"><use href="#i-scale"/></svg>Criar LAW</button>
           <button class="btn btn--ghost">Ignorar</button>
         </div>
       </aside>
@@ -147,10 +167,32 @@
     <button class="btn">Padrão</button>
     <button class="btn btn--ghost">Ghost</button>
     <button class="btn btn--sm">Pequeno</button>
-    <button class="btn btn--icon" aria-label="Adicionar">+</button>
+    <button class="btn btn--icon" aria-label="Adicionar"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
     <input class="input" placeholder="Input">
     <div class="segmented" role="group"><button aria-pressed="true">Um</button><button aria-pressed="false">Dois</button></div>
   </div>
+
+  <h2>Ícones</h2>
+  <div class="icon-grid">
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span>plus</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg><span>file-text</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-scale"/></svg><span>scale</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-triangle-alert"/></svg><span>triangle-alert</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-circle-check"/></svg><span>circle-check</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg><span>x</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg><span>chevron-down</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg><span>list</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg><span>code</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-wand-sparkles"/></svg><span>wand-sparkles</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span>search</span></div>
+    <div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-panel-left"/></svg><span>panel-left</span></div>
+  </div>
+  <div class="row" style="margin-top:var(--space-3)">
+    <button class="btn btn--sm btn--icon" aria-label="sm"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button class="btn btn--icon" aria-label="md"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button class="btn btn--lg btn--icon" aria-label="lg"><svg class="icon icon--lg" aria-hidden="true"><use href="#i-plus"/></svg></button>
+  </div>
+  <p class="note">Botão só de ícone: 24 = 16 + 4 + 4 · 32 = 16 + 8 + 8 · 36 = 20 + 8 + 8. Vigiado por law.</p>
 
   <h2>Tags</h2>
   <div class="row">

@@ -16,6 +16,8 @@ const VARS = {
   "--radius-full": () => px(T.radius_full()),
   "--control-sm": () => px(T.control_sm()), "--control-md": () => px(T.control_md()),
   "--control-lg": () => px(T.control_lg()),
+  "--icon-sm": () => px(T.icon_sm()), "--icon-md": () => px(T.icon_md()),
+  "--icon-lg": () => px(T.icon_lg()), "--icon-stroke": () => T.icon_stroke(),
   "--font-sans": () => T.font_sans(), "--font-mono": () => T.font_mono(),
   "--text-xs": () => px(T.text_xs()), "--text-sm": () => px(T.text_sm()),
   "--text-md": () => px(T.text_md()), "--text-lg": () => px(T.text_lg()),

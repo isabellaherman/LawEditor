@@ -23,14 +23,26 @@ def radius_full() -> U32: 999
 
 # Controles
 def control_sm() -> U32: 24
-def control_md() -> U32: 30
+def control_md() -> U32: 32
 def control_lg() -> U32: 36
+
+# Ícones
+def icon_sm() -> U32: 14
+def icon_md() -> U32: 16
+def icon_lg() -> U32: 20
+def icon_stroke() -> String: "1.75"
 
 # Componentes: as escolhas que as laws vigiam
 def btn_padding_x() -> U32: space_3()
 def btn_height() -> U32: control_md()
 def btn_radius() -> U32: radius_md()
 def panel_padding() -> U32: space_4()
+def icon_btn_sm_icon() -> U32: icon_md()
+def icon_btn_sm_padding() -> U32: space_1()
+def icon_btn_md_icon() -> U32: icon_md()
+def icon_btn_md_padding() -> U32: space_2()
+def icon_btn_lg_icon() -> U32: icon_lg()
+def icon_btn_lg_padding() -> U32: space_2()
 def field_gap() -> U32: space_1()
 def form_gap() -> U32: space_4()
 def segmented_padding() -> U32: space_hairline()

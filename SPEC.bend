@@ -9,6 +9,10 @@ def in_space_scale(+n: U32) -> Bool:
     || U32.is_eq(n, 16) || U32.is_eq(n, 24) || U32.is_eq(n, 32)
     || U32.is_eq(n, 48) || U32.is_eq(n, 64))
 
-# As alturas de controle: 24, 30, 36.
+# Um botão só de ícone encaixa: ícone + 2 × padding = altura, com o padding na escala.
+def icon_button_fits(+height: U32, +icon: U32, +pad: U32) -> Bool:
+  (U32.is_eq(height, (icon + pad + pad : U32)) && in_space_scale(pad))
+
+# As alturas de controle: 24, 32, 36 (todas na grade de 4).
 def in_control_scale(+n: U32) -> Bool:
-  (U32.is_eq(n, 24) || U32.is_eq(n, 30) || U32.is_eq(n, 36))
+  (U32.is_eq(n, 24) || U32.is_eq(n, 32) || U32.is_eq(n, 36))
