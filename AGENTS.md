@@ -36,7 +36,7 @@ Se uma tarefa parecer exigir mudar um desses arquivos, pare e pergunte.
 - Uma página com **um** `.btn--primary` usando `spec/components.css`, idêntico ao do `spec/index.html`.
 - Demonstre que a law bloqueia um erro: mude um padding para 10, mostre o `bend PROOF.bend` falhando, e reverta.
 
-**3. Página completa.** O `spec/index.html` inteiro rodando com tokens vindos do Bend, visualmente idêntico ao original.
+**3. Página completa.** ✅ Feito: `web/index.html` é o mock inteiro com tokens vindos do Bend; 0 diferenças contra o spec em 3.066 propriedades e pixel a pixel. O `spec/index.html` inteiro rodando com tokens vindos do Bend, visualmente idêntico ao original.
 
 ## Fora do escopo
 O modelo de LAW do editor (como uma frase vira law). A Bella vai desenhar isso. Não proponha nada sobre ele.

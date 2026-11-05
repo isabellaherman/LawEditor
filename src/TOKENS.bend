@@ -19,6 +19,7 @@ def radius_xs() -> U32: 2
 def radius_sm() -> U32: 4
 def radius_md() -> U32: 6
 def radius_lg() -> U32: 10
+def radius_full() -> U32: 999
 
 # Controles
 def control_sm() -> U32: 24
@@ -49,6 +50,11 @@ def weight_regular() -> U32: 400
 def weight_medium() -> U32: 500
 def weight_semibold() -> U32: 600
 def border_width() -> U32: 1
+def leading_tight() -> String: "1.25"
+def leading_ui() -> String: "1.4"
+def leading_body() -> String: "1.65"
+def measure_ch() -> U32: 68
+def shadow_float() -> String: "0 4px 16px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(0 0 0 / 0.04)"
 def duration_ms() -> U32: 120
 
 # Cor (tema claro)
