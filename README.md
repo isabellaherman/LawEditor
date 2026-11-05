@@ -28,7 +28,7 @@ Para este projeto, "a lib em Bend" significa que **os tokens vivem em Bend e sã
 bend update                          # ou: curl -fsSL https://bend-lang.com/install.sh | sh
 bend PROOF.bend                      # verifica as laws: ALL PROOFS CHECK
 
-git clone https://github.com/bendlang/bend ../bendlang   # o servidor de dev usa o loader dele
+git clone https://github.com/bendlang/bend ../bend   # o servidor de dev usa o loader dele
 cd web && bun index.html             # abre a página; os tokens vêm de src/TOKENS.bend
 ```
 
