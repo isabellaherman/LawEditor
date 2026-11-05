@@ -25,8 +25,23 @@ Para este projeto, "a lib em Bend" significa que **os tokens vivem em Bend e sã
 ## Rodar
 
 ```bash
-bend update            # ou: curl -fsSL https://bend-lang.com/install.sh | sh
-bend PROOF.bend        # verifica as laws
+bend update                          # ou: curl -fsSL https://bend-lang.com/install.sh | sh
+bend PROOF.bend                      # verifica as laws: ALL PROOFS CHECK
+
+git clone https://github.com/bendlang/bend ../bend   # o servidor de dev usa o loader dele
+cd web && bun index.html             # abre a página; os tokens vêm de src/TOKENS.bend
 ```
+
+## Laws do design system hoje
+
+| Law | O que garante |
+|---|---|
+| `btn_padding_in_scale` | Padding do botão está na escala (4, 8, 12, 16, 24, 32, 48, 64) |
+| `panel_padding_in_scale` | Padding do painel está na escala |
+| `btn_height_in_scale` | Altura do botão é 24, 30 ou 36 |
+| `segmented_radius_nested` | Raio externo = raio interno + padding |
+| `inside_less_than_between` | Espaço dentro do grupo < espaço entre grupos |
+
+Teste: troque `btn_padding_x` para `10` em `src/TOKENS.bend` e rode `bend PROOF.bend`. Dá `SOME PROOFS FAIL`.
 
 Instruções para agentes: [`AGENTS.md`](AGENTS.md).

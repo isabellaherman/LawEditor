@@ -14,7 +14,7 @@ Leia o `README.md` antes. Este arquivo diz o que fazer e o que não fazer.
 
 ## Arquivos que você NÃO edita
 - `spec/`: é a especificação visual.
-- `LAWS.bend`: depois de aprovado pela Bella. Antes disso você só propõe.
+- `LAWS.bend` e `SPEC.bend`: são as regras e o que elas significam. Só a Bella muda.
 
 Se uma tarefa parecer exigir mudar um desses arquivos, pare e pergunte.
 
@@ -25,7 +25,7 @@ Se uma tarefa parecer exigir mudar um desses arquivos, pare e pergunte.
 - Rode o `demos/app_win_is_bug_2d/web` localmente.
 - Reporte se funcionou, os comandos exatos usados e qualquer erro.
 
-**2. Tokens em Bend + um botão.**
+**2. Tokens em Bend + um botão.** ✅ Feito: `src/TOKENS.bend`, `LAWS.bend`, `SPEC.bend`, `PROOF.bend`, `web/`.
 - `src/TOKENS.bend`: os valores de `spec/tokens.css` (espaço, raio, tipo, cor, controles; só o tema claro por enquanto).
 - **Proposta** de `LAWS.bend` com, no mínimo:
   - Todo espaçamento usado pertence à escala (4, 8, 12, 16, 24, 32, 48, 64).
