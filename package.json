@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "bend-ui": "github:isabellaherman/Bend-UI#mvp"
+    "bend-ui": "github:isabellaherman/Bend-UI#main"
   },
   "scripts": {
     "check": "bend PROOF.bend && bend server.bend --check-only",
