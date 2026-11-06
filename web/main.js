@@ -6,7 +6,6 @@ import { mountAgent, flyBetween } from "bend-ui/agent";
 import claudeMark from "bend-ui/brand/claude.webp";
 import openaiMark from "bend-ui/brand/openai.svg";
 import E from "../EDITOR.bend";
-import "./editor.css";
 
 const $ = (id) => document.getElementById(id);
 const win = $("win"), doc = $("doc");
@@ -43,21 +42,21 @@ const lawFor = (text) => laws.find((l) => l.sentence === text.trim());
 // =========================================================
 // Document: one block per line. Its state comes from EDITOR.bend.
 // =========================================================
-// Minimum block heights come from EDITOR.bend; editor.css reads them.
-document.documentElement.style.setProperty("--min-lines-sentence", E.min_lines(E.sentence()));
-document.documentElement.style.setProperty("--min-lines-law", E.min_lines(E.law_block()));
 
 const S = { title: E.title(), empty: E.empty(), busy: E.busy(), ok: E.ok(), error: E.error() };
 const DOT = { [S.empty]: "dot", [S.busy]: "dot dot--busy", [S.ok]: "dot dot--ok", [S.error]: "dot dot--error" };
 let current = null;
 let running = false;
 
-// A line is a pair: the sentence block (.line) and its law block (.law), drawn by the view.
+// A line is a Bend-UI pair: the sentence block (.line) and its law block (the aside).
+// Each block's minimum height, in lines, comes from EDITOR.bend (law_block_min_is_sentence_min).
 function makeBlock(kind = "text", text = "", after = null) {
   const pair = document.createElement("div");
   pair.className = "pair";
-  pair.innerHTML = '<div class="block line"><div class="block__slot"></div><div class="block__text" contenteditable="true"></div></div><div class="block law"></div>';
+  pair.innerHTML = '<div class="block line"><div class="block__slot"></div><div class="block__text" contenteditable="true"></div></div><div class="block pair__aside"></div>';
   const b = pair.firstChild;
+  b.style.setProperty("--block-min-lines", E.min_lines(E.sentence()));
+  pair.lastChild.style.setProperty("--block-min-lines", E.min_lines(E.law_block()));
   if (kind === "title") b.classList.add("block--title");
   b.querySelector(".block__text").textContent = text;
   b.querySelector(".block__text").dataset.placeholder = "Write a rule and press Enter";
@@ -78,26 +77,18 @@ function setState(b, state, out = "") {
   syncGen();
 }
 
-// The law block under (or beside) a sentence.
+// The law block: the same .block as a sentence. Its dot is the law's state; its text is the law,
+// the reason it failed, or (while the agent works) a placeholder. No law: no block.
 const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 function drawLaw(el, state, out) {
-  const icon = (n) => `<svg class="icon icon--sm"><use href="#i-${n}"/></svg>`;
-  el.className = "block law";
-  if (state === S.ok) {
-    const name = (out.match(/^law ([\w.]+)/m) || [])[1] || "";
-    el.classList.add("law--ok");
-    el.innerHTML = `<div class="block__slot">${icon("scale")}</div><div class="block__text"><span class="tag tag--law">LAW</span><span class="meta mono">${esc(name)}</span></div><pre class="block__out">${esc(out)}</pre>`;
-  } else if (state === S.error) {
-    el.classList.add("law--error");
-    el.innerHTML = `<div class="block__slot">${icon("triangle-alert")}</div><div class="block__text"><span class="tag tag--conflict">No law</span><span class="meta">The agent couldn't write one</span></div><pre class="block__out block__out--error">${esc(out)}</pre>`;
-  } else if (state === S.busy) {
-    el.classList.add("law--busy");
-    el.innerHTML = '<div class="block__slot"><span class="dot dot--busy"></span></div><div class="block__text"><span class="meta">Writing the law…</span></div>';
-  } else if (state === S.empty) {
-    el.classList.add("law--none");
-    el.innerHTML = '<div class="block__slot"><span class="dot"></span></div><div class="block__text"><span class="meta">No law yet. Generate LAWs to write one.</span></div>';
-  } else el.innerHTML = "";
+  const block = (dot, text) => `<div class="block__slot"><span class="${dot}"></span></div>${text}`;
+  el.classList.toggle("block--code", state === S.ok);
+  if (state === S.ok) el.innerHTML = block(DOT[S.ok], `<div class="block__text">${esc(out)}</div>`);
+  else if (state === S.error) el.innerHTML = block(DOT[S.error], `<div class="block__text">${esc(out)}</div>`);
+  else if (state === S.busy) el.innerHTML = block(DOT[S.busy], '<div class="block__text" data-placeholder="Writing the law…"></div>');
+  else el.innerHTML = "";
 }
+
 const lines = () => [...doc.querySelectorAll(".line")];
 const select = (b) => lines().forEach((x) => x.setAttribute("aria-selected", x === b));
 function focusEnd(b) {
@@ -280,7 +271,7 @@ async function loadLaws() {
 function renderLaws() {
   const list = $("laws-list"); list.innerHTML = "";
   const inDoc = new Set(lines().filter((b) => !isTitle(b)).map(textOf));
-  if (!laws.length) list.innerHTML = '<p class="meta view-note">No laws yet. Write a rule in the document and generate.</p>';
+  if (!laws.length) list.innerHTML = '<p class="meta doc__note">No laws yet. Write a rule in the document and generate.</p>';
   for (const l of laws) {
     const orphan = !inDoc.has(l.sentence);   // its sentence was deleted: keep the law, flag it
     const b = document.createElement("div");
@@ -371,14 +362,16 @@ document.addEventListener("pointerdown", (e) => { if (isNarrow() && side.classLi
 side.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
   side.querySelectorAll("[data-view]").forEach((x) => x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"));
   for (const v of ["doc", "laws", "context"]) $("view-" + v).hidden = v !== b.dataset.view;
-  document.querySelectorAll(".doc-only").forEach((x) => x.style.visibility = b.dataset.view === "doc" ? "" : "hidden");
+  document.querySelectorAll(".doc-only").forEach((x) => x.hidden = b.dataset.view !== "doc");
   if (b.dataset.view === "laws") { editLaws(false); loadLaws(); }
   if (isNarrow()) setSide(false);
 }));
 
 // The document's view: sentences (default), with laws, or split.
+const VIEW_CLASS = { sentences: [], laws: ["doc--stack"], split: ["doc--split", "doc--wide"] };
 function setView(v) {
-  doc.dataset.view = v;
+  doc.classList.remove("doc--stack", "doc--split", "doc--wide");
+  doc.classList.add(...VIEW_CLASS[v]);
   $("view").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === v));
   try { localStorage.setItem("laweditor.view", v); } catch {}
 }

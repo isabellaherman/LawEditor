@@ -40,6 +40,6 @@ bend /path/to/LawEditor/server.bend /path/to/LawEditor/dist /path/to/LawEditor/A
 | `EDITOR.bend` | The editor's logic (line states, when Generate is on) |
 | `LAWS.bend` / `PROOF.bend` | The editor's own rules and their proofs (`bun run check`) |
 | `AGENT.md` | What the agent is told |
-| `web/` | The page: `index.html`, `main.js` (draws), `editor.css` (layout only) |
+| `web/` | The page: `index.html` (Bend-UI classes only) and `main.js` (draws). No CSS of its own |
 
 Agent instructions for this repo: [`AGENTS.md`](AGENTS.md).
