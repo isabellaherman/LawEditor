@@ -1,4 +1,0 @@
-# Caminho para o bend2/main.ts de um clone do github.com/bendlang/bend,
-# clonado ao lado desta pasta como ../bend. Ajuste se o seu estiver em outro lugar.
-[serve.static]
-plugins = ["../../bend/bend2/main.ts"]

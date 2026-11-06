@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "bend-ui": "github:isabellaherman/Bend-UI"
+    "bend-ui": "github:isabellaherman/Bend-UI#mvp"
   },
   "scripts": {
-    "dev": "cd web && bun index.html"
+    "check": "bend PROOF.bend && bend server.bend --check-only",
+    "build": "bend web/index.html -o dist",
+    "start": "bun run build && mkdir -p project && cd project && bend ../server.bend ../dist ../AGENT.md"
   }
 }
