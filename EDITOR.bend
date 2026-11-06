@@ -50,6 +50,15 @@ def can_generate(running: Bool, pending: U32) -> Bool:
     case False{}:
       (pending > 0 : U32)
 
+# The document always ends with an empty line to write in, as when it opens.
+# It needs one when its last line has text (or it has no lines).
+def needs_line(last_is_empty: Bool) -> Bool:
+  match last_is_empty:
+    case True{}:
+      False{}
+    case False{}:
+      True{}
+
 # The document is made of blocks: a sentence, and the law drawn under or beside it.
 def sentence() -> U32: 0
 def law_block() -> U32: 1

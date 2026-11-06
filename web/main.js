@@ -211,7 +211,14 @@ $("gen").addEventListener("click", async () => {
   await thread.end();
   await thread.release();
   await loadLaws();
+  ensureLine();
 });
+
+// The document always ends with an empty line to write in (EDITOR.bend: needs_line).
+function ensureLine() {
+  const last = lines().at(-1);
+  if (E.needs_line(!!last && !textOf(last))) makeBlock("text");
+}
 
 // An error that means the agent itself can't run: drop the connection, ask again.
 function agentFailed(out) {
@@ -418,7 +425,6 @@ $("full").addEventListener("click", (e) => {
   await loadLaws();
 
   const lines = gdd.split("\n").filter((l) => l.trim());
-  if (!lines.length) lines.push("# Untitled");
   for (const line of lines) {
     const title = line.startsWith("# ");
     const text = title ? line.slice(2) : line;

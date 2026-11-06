@@ -32,14 +32,17 @@ bend /path/to/LawEditor/server.bend /path/to/LawEditor/dist /path/to/LawEditor/A
 
 **Context** shows `AGENT.md`, exactly what the agent is told. Read only.
 
+**Chat** talks with the AI you picked. It reads your project and never edits it; it's told what Context shows.
+
 ## Files
 
 | File | What it is |
 |---|---|
 | `server.bend` | The server: serves the page, keeps the project files, runs the agent |
 | `EDITOR.bend` | The editor's logic (line states, when Generate is on) |
+| `CHAT.bend` | The chat's logic (who wrote a message, when Send is on) |
 | `LAWS.bend` / `PROOF.bend` | The editor's own rules and their proofs (`bun run check`) |
 | `AGENT.md` | What the agent is told |
-| `web/` | The page: `index.html` (Bend-UI classes only) and `main.js` (draws). No CSS of its own |
+| `web/` | The page: `index.html` (Bend-UI classes only) and `main.js` and `chat.js` (draw). No CSS of its own |
 
 Agent instructions for this repo: [`AGENTS.md`](AGENTS.md).

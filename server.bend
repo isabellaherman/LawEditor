@@ -186,6 +186,27 @@ def generate(+ai: String, agent_md: String, sentence: String) -> IO(String):
     check : U32 & String <- run("bend", ["LAWS.bend", "--check-only"], 120000)
     return check_reply(agent, check)
 
+# The chat: the agent answers the conversation so far. It may read the files here, never edit them.
+def chat_args.pick(is_codex: Bool, prompt: String) -> List<String>:
+  match is_codex:
+    case True{}:
+      ["exec", "--sandbox", "read-only", prompt]
+    case False{}:
+      ["-p", prompt, "--allowedTools", "Read"]
+
+def chat_args(+ai: String, prompt: String) -> List<String>:
+  chat_args.pick(String.eq(ai, "codex"), prompt)
+
+def chat_reply(agent: U32 & String) -> String:
+  (+code, +out) = agent
+  pick(U32.is_eq(code, 127), ok_text("error\nCould not start the agent: " ++ out), ok_text("ok\n" ++ out))
+
+def chat(+ai: String, agent_md: String, conversation: String) -> IO(String):
+  do IO<String>:
+    rules : String <- read_file(agent_md)
+    agent : U32 & String <- run(ai, chat_args(ai, rules ++ "\n\n## Chat\n\n" ++ conversation), 600000)
+    return chat_reply(agent)
+
 # ---------- Routes ----------
 
 def static_reply(+text: String, +path: String) -> String:
@@ -245,7 +266,8 @@ def route_get.connect(is_connect: Bool, +path: String, dist: String, agent_md: S
 def route_get(+path: String, dist: String, agent_md: String) -> IO(String):
   route_get.connect(String.starts_with(path, "/api/connect/"), path, dist, agent_md)
 
-# POST: /api/generate/<ai> (body: the sentence), /api/file/<name> (body: the file).
+# POST: /api/generate/<ai> (body: the sentence), /api/chat/<ai> (body: the conversation),
+# /api/file/<name> (body: the file).
 def route_file_post.at(allowed: Bool, name: String, body: String) -> IO(String):
   match allowed:
     case True{}:
@@ -272,8 +294,15 @@ def route_post.generate(is_gen: Bool, +path: String, body: String, agent_md: Str
     case False{}:
       route_post.files(String.starts_with(path, "/api/file/"), path, body)
 
+def route_post.chat(is_chat: Bool, +path: String, body: String, agent_md: String) -> IO(String):
+  match is_chat:
+    case True{}:
+      chat(after(path, "/api/chat/"), agent_md, body)
+    case False{}:
+      route_post.generate(String.starts_with(path, "/api/generate/"), path, body, agent_md)
+
 def route_post(+path: String, body: String, agent_md: String) -> IO(String):
-  route_post.generate(String.starts_with(path, "/api/generate/"), path, body, agent_md)
+  route_post.chat(String.starts_with(path, "/api/chat/"), path, body, agent_md)
 
 def route.at(is_post: Bool, +req: String, dist: String, agent_md: String) -> IO(String):
   match is_post:

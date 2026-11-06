@@ -66,3 +66,12 @@ Or, if you couldn't, print a single line:
 ```
 ERROR: <what is missing, ambiguous or wrong>
 ```
+
+## Chat
+
+If this message ends with a `## Chat` section instead of a `## Sentence`, the person is talking with you, not asking for a law.
+The section is the conversation so far, oldest first: each line starts with `Person:` or `Agent:`.
+
+- Answer the person's last message in plain text, short and direct.
+- You may read the files in this folder. Never edit or create a file in a chat.
+- If the person states a rule, you may show the law you would write, but don't add it: they add sentences in the Document.

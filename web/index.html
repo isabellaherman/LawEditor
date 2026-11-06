@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script type="module" src="./main.js"></script>
+<script type="module" src="./chat.js"></script>
 </head>
 <body class="desk">
 <div class="window" id="win" data-agent="lg">
@@ -19,6 +20,7 @@
     <button class="btn btn--ghost" data-view="doc" aria-current="page" title="Document"><svg class="icon"><use href="#i-file-text"/></svg><span class="side__text">Document</span></button>
     <button class="btn btn--ghost" data-view="laws" title="Laws"><svg class="icon"><use href="#i-scale"/></svg><span class="side__text">Laws</span></button>
     <button class="btn btn--ghost" data-view="context" title="Context"><svg class="icon"><use href="#i-book-open"/></svg><span class="side__text">Context</span></button>
+    <button class="btn btn--ghost" data-view="chat" title="Chat"><svg class="icon"><use href="#i-text"/></svg><span class="side__text">Chat</span></button>
   </aside>
 
   <div class="window__main">
@@ -87,7 +89,18 @@
           <article class="prose" id="agent-md"></article>
         </div>
       </section>
+
+      <section class="view" id="view-chat" hidden>
+        <div class="chat" id="chat"></div>
+      </section>
     </main>
+
+    <form class="composer" id="composer" hidden>
+      <div class="composer__box">
+        <textarea class="input" id="ask" rows="1" placeholder="Message the agent…"></textarea>
+        <button class="btn btn--primary btn--lg" id="send" type="submit">Send</button>
+      </div>
+    </form>
 
     <p class="meta window__foot">Made with <a class="link" href="https://github.com/isabellaherman/Bend-UI" target="_blank" rel="noopener">Bend-UI</a></p>
 
