@@ -8,6 +8,7 @@ import { createFollow } from "bend-ui/follow";
 import claudeMark from "bend-ui/brand/claude.webp";
 import openaiMark from "bend-ui/brand/openai.svg";
 import E from "../EDITOR.bend";
+import { markdown } from "./markdown.js";
 
 const $ = (id) => document.getElementById(id);
 const win = $("win"), doc = $("doc");
@@ -347,34 +348,6 @@ function refreshDocStates() {
 }
 
 // =========================================================
-// Context view: AGENT.md, rendered
-// =========================================================
-function markdown(src) {
-  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const inline = (s) => esc(s)
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-  const out = []; let list = null, code = null;
-  for (const line of src.split("\n")) {
-    if (code !== null) { if (/^```/.test(line)) { out.push(`<pre><code>${esc(code.join("\n"))}</code></pre>`); code = null; } else code.push(line); continue; }
-    if (/^```/.test(line)) { if (list) { out.push(`<${list.t}>${list.items.join("")}</${list.t}>`); list = null; } code = []; continue; }
-    const h = line.match(/^(#{1,3}) (.*)/), li = line.match(/^(\s*)(-|\d+\.) (.*)/);
-    if (li && !li[1]) {
-      const t = li[2] === "-" ? "ul" : "ol";
-      if (!list || list.t !== t) { if (list) out.push(`<${list.t}>${list.items.join("")}</${list.t}>`); list = { t, items: [] }; }
-      list.items.push(`<li>${inline(li[3])}</li>`); continue;
-    }
-    if (li && list) { list.items[list.items.length - 1] = list.items[list.items.length - 1].replace("</li>", `<br>${inline(li[3])}</li>`); continue; }
-    if (list) { out.push(`<${list.t}>${list.items.join("")}</${list.t}>`); list = null; }
-    if (h) out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`);
-    else if (line.trim()) out.push(`<p>${inline(line)}</p>`);
-  }
-  if (list) out.push(`<${list.t}>${list.items.join("")}</${list.t}>`);
-  return out.join("\n");
-}
-
-// =========================================================
 // Side bar, views, full screen
 // =========================================================
 const side = $("side");
@@ -389,22 +362,35 @@ document.addEventListener("pointerdown", (e) => { if (isNarrow() && side.classLi
 
 side.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
   side.querySelectorAll("[data-view]").forEach((x) => x === b ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"));
-  for (const v of ["doc", "laws", "context"]) $("view-" + v).hidden = v !== b.dataset.view;
-  document.querySelectorAll(".doc-only").forEach((x) => x.hidden = b.dataset.view !== "doc");
-  if (b.dataset.view === "laws") { editLaws(false); loadLaws(); }
+  const laws = b.dataset.view === "doc";
+  document.querySelectorAll(".doc-only").forEach((x) => x.hidden = !laws);
+  if (laws) setView(lawView);
+  else for (const s of ["doc", "laws", "context"]) $("view-" + s).hidden = true;   // chat.js shows Chat
   if (isNarrow()) setSide(false);
 }));
 
-// The document's view: sentences (default), with laws, or split.
+// Laws shows the document (its selector: sentences, with laws, or split), or, from their own buttons,
+// its files (LAWS.bend, TYPES.bend) or its context (AGENT.md, what the law agent is told).
+// show: false only remembers it (Chat is open).
 const VIEW_CLASS = { sentences: [], laws: ["doc--stack"], split: ["doc--split", "doc--wide"] };
-function setView(v) {
-  doc.classList.remove("doc--stack", "doc--split", "doc--wide");
-  doc.classList.add(...VIEW_CLASS[v]);
+const VIEW_SECTION = { sentences: "doc", laws: "doc", split: "doc", files: "laws", context: "context" };
+let lawView = "sentences", docView = "sentences";
+function setView(v, show = true) {
+  lawView = v;
+  if (VIEW_CLASS[v]) docView = v;
+  if (VIEW_CLASS[v]) { doc.classList.remove("doc--stack", "doc--split", "doc--wide"); doc.classList.add(...VIEW_CLASS[v]); }
   $("view").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === v));
+  for (const b of [$("files-btn"), $("context-btn")]) b.dataset.view === v ? b.setAttribute("aria-current", "true") : b.removeAttribute("aria-current");
   try { localStorage.setItem("laweditor.view", v); } catch {}
+  if (!show) return;
+  for (const s of ["doc", "laws", "context"]) $("view-" + s).hidden = s !== VIEW_SECTION[v];
+  $("kind").hidden = $("gen").hidden = VIEW_SECTION[v] !== "doc";   // they act on the document
+  if (v === "files") { editLaws(false); loadLaws(); }
 }
 $("view").addEventListener("change", (e) => setView(e.detail.dataset.view));
-try { const v = localStorage.getItem("laweditor.view"); if (["sentences", "laws", "split"].includes(v)) setView(v); } catch {}
+// Files and Context: a second click goes back to the document.
+for (const b of [$("files-btn"), $("context-btn")]) b.addEventListener("click", () => setView(lawView === b.dataset.view ? docView : b.dataset.view));
+try { const v = localStorage.getItem("laweditor.view"); if (v in VIEW_SECTION) setView(v, false); } catch {}
 
 $("full").addEventListener("click", (e) => {
   const full = win.classList.toggle("is-full");

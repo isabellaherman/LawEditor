@@ -6,6 +6,7 @@
 # in the folder it runs from, and runs the agent (claude or codex) there.
 
 import Base
+import ./MODELS.bend as Models
 
 # ---------- Text ----------
 
@@ -186,26 +187,70 @@ def generate(+ai: String, agent_md: String, sentence: String) -> IO(String):
     check : U32 & String <- run("bend", ["LAWS.bend", "--check-only"], 120000)
     return check_reply(agent, check)
 
-# The chat: the agent answers the conversation so far. It may read the files here, never edit them.
-def chat_args.pick(is_codex: Bool, prompt: String) -> List<String>:
-  match is_codex:
-    case True{}:
+# CHAT.md (what the chat is told) lives next to AGENT.md (what the law agent is told).
+def chat_md(+agent_md: String) -> String:
+  String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ "CHAT.md"
+
+# The chat: the agent answers the conversation so far, with the model picked in the chat.
+# It may read the files here, never edit them. No model: the CLI's own default.
+def chat_args.pick(is_codex: Bool, has_model: Bool, model: String, prompt: String) -> List<String>:
+  match is_codex has_model:
+    case True{} True{}:
+      ["exec", "-m", model, "--sandbox", "read-only", prompt]
+    case True{} False{}:
       ["exec", "--sandbox", "read-only", prompt]
-    case False{}:
+    case False{} True{}:
+      ["-p", prompt, "--model", model, "--allowedTools", "Read"]
+    case False{} False{}:
       ["-p", prompt, "--allowedTools", "Read"]
 
-def chat_args(+ai: String, prompt: String) -> List<String>:
-  chat_args.pick(String.eq(ai, "codex"), prompt)
+def chat_args(+ai: String, +model: String, prompt: String) -> List<String>:
+  chat_args.pick(String.eq(ai, "codex"), Bool.not(String.is_empty(model)), model, prompt)
 
 def chat_reply(agent: U32 & String) -> String:
   (+code, +out) = agent
   pick(U32.is_eq(code, 127), ok_text("error\nCould not start the agent: " ++ out), ok_text("ok\n" ++ out))
 
-def chat(+ai: String, agent_md: String, conversation: String) -> IO(String):
+# target: "<ai>/<model>" from /api/chat/<ai>/<model>.
+def chat(+target: String, agent_md: String, conversation: String) -> IO(String):
   do IO<String>:
-    rules : String <- read_file(agent_md)
-    agent : U32 & String <- run(ai, chat_args(ai, rules ++ "\n\n## Chat\n\n" ++ conversation), 600000)
+    rules : String <- read_file(chat_md(agent_md))
+    agent : U32 & String <- run(nth(String.split(target, '/'), 0n), chat_args(nth(String.split(target, '/'), 0n), nth(String.split(target, '/'), 1n), rules ++ "\n\n## Chat\n\n" ++ conversation), 600000)
     return chat_reply(agent)
+
+# The models an AI offers, asked to its own CLI (MODELS.bend reads the answer). Only claude and codex.
+def is_ai(+ai: String) -> Bool:
+  (String.eq(ai, "claude") || String.eq(ai, "codex"))
+
+def models_args(is_codex: Bool) -> List<String>:
+  match is_codex:
+    case True{}:
+      ["debug", "models"]
+    case False{}:
+      ["--help"]
+
+def models_read(is_codex: Bool, +out: String) -> String:
+  match is_codex:
+    case True{}:
+      Models.codex(out)
+    case False{}:
+      Models.claude(out)
+
+def models_reply(is_codex: Bool, r: U32 & String) -> String:
+  (code, +out) = r
+  ok_text(models_read(is_codex, out))
+
+def models.at(known: Bool, +ai: String) -> IO(String):
+  match known:
+    case True{}:
+      do IO<String>:
+        r : U32 & String <- run(ai, models_args(String.eq(ai, "codex")), 30000)
+        return models_reply(String.eq(ai, "codex"), r)
+    case False{}:
+      IO.pure(String, not_found())
+
+def models(+ai: String) -> IO(String):
+  models.at(is_ai(ai), ai)
 
 # ---------- Routes ----------
 
@@ -241,7 +286,10 @@ def route_agent_md(agent_md: String) -> IO(String):
     text : String <- read_file(agent_md)
     return ok_text(text)
 
-# GET: /api/connect/<ai>, /api/file/AGENT.md, /api/file/<name>, or a file of the page.
+def route_chat_md(+agent_md: String) -> IO(String):
+  route_agent_md(chat_md(agent_md))
+
+# GET: /api/models/<ai>, /api/connect/<ai>, /api/file/AGENT.md, /api/file/CHAT.md, /api/file/<name>, or a file of the page.
 def route_get.files(is_file: Bool, +path: String, dist: String) -> IO(String):
   match is_file:
     case True{}:
@@ -249,12 +297,19 @@ def route_get.files(is_file: Bool, +path: String, dist: String) -> IO(String):
     case False{}:
       route_static(pick(String.eq(path, "/"), "/index.html", path), dist)
 
-def route_get.agent(is_agent: Bool, +path: String, dist: String, agent_md: String) -> IO(String):
+def route_get.chat_md(is_chat_md: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
+  match is_chat_md:
+    case True{}:
+      route_chat_md(agent_md)
+    case False{}:
+      route_get.files(String.starts_with(path, "/api/file/"), path, dist)
+
+def route_get.agent(is_agent: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
   match is_agent:
     case True{}:
       route_agent_md(agent_md)
     case False{}:
-      route_get.files(String.starts_with(path, "/api/file/"), path, dist)
+      route_get.chat_md(String.eq(path, "/api/file/CHAT.md"), path, dist, agent_md)
 
 def route_get.connect(is_connect: Bool, +path: String, dist: String, agent_md: String) -> IO(String):
   match is_connect:
@@ -263,10 +318,17 @@ def route_get.connect(is_connect: Bool, +path: String, dist: String, agent_md: S
     case False{}:
       route_get.agent(String.eq(path, "/api/file/AGENT.md"), path, dist, agent_md)
 
-def route_get(+path: String, dist: String, agent_md: String) -> IO(String):
-  route_get.connect(String.starts_with(path, "/api/connect/"), path, dist, agent_md)
+def route_get.models(is_models: Bool, +path: String, dist: String, agent_md: String) -> IO(String):
+  match is_models:
+    case True{}:
+      models(after(path, "/api/models/"))
+    case False{}:
+      route_get.connect(String.starts_with(path, "/api/connect/"), path, dist, agent_md)
 
-# POST: /api/generate/<ai> (body: the sentence), /api/chat/<ai> (body: the conversation),
+def route_get(+path: String, dist: String, agent_md: String) -> IO(String):
+  route_get.models(String.starts_with(path, "/api/models/"), path, dist, agent_md)
+
+# POST: /api/generate/<ai> (body: the sentence), /api/chat/<ai>/<model> (body: the conversation),
 # /api/file/<name> (body: the file).
 def route_file_post.at(allowed: Bool, name: String, body: String) -> IO(String):
   match allowed:

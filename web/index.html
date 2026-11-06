@@ -17,16 +17,14 @@
     <div class="side__head">
       <button class="btn btn--ghost btn--icon" id="side-toggle" aria-label="Open side bar" title="Open side bar"><svg class="icon"><use href="#i-panel-left"/></svg></button>
     </div>
-    <button class="btn btn--ghost" data-view="doc" aria-current="page" title="Document"><svg class="icon"><use href="#i-file-text"/></svg><span class="side__text">Document</span></button>
-    <button class="btn btn--ghost" data-view="laws" title="Laws"><svg class="icon"><use href="#i-scale"/></svg><span class="side__text">Laws</span></button>
-    <button class="btn btn--ghost" data-view="context" title="Context"><svg class="icon"><use href="#i-book-open"/></svg><span class="side__text">Context</span></button>
-    <button class="btn btn--ghost" data-view="chat" title="Chat"><svg class="icon"><use href="#i-text"/></svg><span class="side__text">Chat</span></button>
+    <button class="btn btn--ghost" data-view="chat" aria-current="page" title="Chat"><svg class="icon"><use href="#i-text"/></svg><span class="side__text">Chat</span></button>
+    <button class="btn btn--ghost" data-view="doc" title="Laws"><svg class="icon"><use href="#i-shield"/></svg><span class="side__text">Laws</span></button>
   </aside>
 
   <div class="window__main">
     <div class="toolbar">
       <button class="btn btn--ghost btn--icon only-narrow" id="side-open" aria-label="Open side bar"><svg class="icon"><use href="#i-panel-left"/></svg></button>
-      <div class="dropdown doc-only" id="kind">
+      <div class="dropdown doc-only" id="kind" hidden>
         <button class="btn btn--ghost" aria-haspopup="menu" aria-expanded="false" title="Line type">
           <svg class="icon"><use href="#i-pilcrow"/></svg><span id="kind-label">Text</span><svg class="icon icon--sm"><use href="#i-chevron-down"/></svg>
         </button>
@@ -36,19 +34,25 @@
         </div>
       </div>
       <div class="toolbar__spacer"></div>
-      <div class="segmented segmented--icons doc-only" id="view" aria-label="View">
+      <div class="segmented segmented--icons chat-only" id="chat-view" aria-label="Chat view">
+        <button aria-pressed="true" data-view="chat" aria-label="Chat" title="Chat"><svg class="icon"><use href="#i-text"/></svg></button>
+        <button aria-pressed="false" data-view="context" aria-label="Context" title="Context"><svg class="icon"><use href="#i-book-open"/></svg></button>
+      </div>
+      <div class="segmented segmented--icons doc-only" id="view" aria-label="View" hidden>
         <button aria-pressed="true" data-view="sentences" aria-label="Sentences" title="Sentences"><svg class="icon"><use href="#i-text"/></svg></button>
         <button aria-pressed="false" data-view="laws" aria-label="Sentences with laws" title="Sentences with laws"><svg class="icon"><use href="#i-rows-2"/></svg></button>
         <button aria-pressed="false" data-view="split" class="hide-narrow" aria-label="Split" title="Split"><svg class="icon"><use href="#i-columns-2"/></svg></button>
       </div>
       <div class="toolbar__spacer"></div>
       <div class="toolbar__dock"><div id="agent-sm"></div></div>
-      <button class="btn btn--primary doc-only" id="gen"><svg class="icon"><use href="#i-wand-sparkles"/></svg><span class="hide-narrow" id="gen-label">Generate LAWs</span></button>
+      <button class="btn btn--primary doc-only" id="gen" hidden><svg class="icon"><use href="#i-wand-sparkles"/></svg><span class="hide-narrow" id="gen-label">Generate LAWs</span></button>
+      <button class="btn btn--ghost btn--icon doc-only" id="files-btn" data-view="files" aria-label="Files" title="Files" hidden><svg class="icon"><use href="#i-code"/></svg></button>
+      <button class="btn btn--ghost btn--icon doc-only" id="context-btn" data-view="context" aria-label="Context" title="Context" hidden><svg class="icon"><use href="#i-book-open"/></svg></button>
       <button class="btn btn--ghost btn--icon hide-narrow" id="full" aria-label="Full screen" title="Full screen"><svg class="icon"><use href="#i-maximize"/></svg></button>
     </div>
 
     <main class="page">
-      <section class="view" id="view-doc">
+      <section class="view" id="view-doc" hidden>
         <div class="doc" id="doc">
           <div class="doc__columns"><span class="meta mono">GDD.md</span><span class="meta mono">LAWS.bend</span></div>
         </div>
@@ -90,15 +94,31 @@
         </div>
       </section>
 
-      <section class="view" id="view-chat" hidden>
+      <section class="view" id="view-chat">
         <div class="chat" id="chat"></div>
+      </section>
+
+      <section class="view" id="view-chat-context" hidden>
+        <div class="doc">
+          <div class="doc__head">
+            <span class="meta mono">CHAT.md</span>
+            <span class="tag"><svg class="icon icon--sm"><use href="#i-lock"/></svg>Read only</span>
+          </div>
+          <article class="prose" id="chat-md"></article>
+        </div>
       </section>
     </main>
 
-    <form class="composer" id="composer" hidden>
+    <form class="composer" id="composer">
       <div class="composer__box">
-        <textarea class="input" id="ask" rows="1" placeholder="Message the agent…"></textarea>
-        <button class="btn btn--primary btn--lg" id="send" type="submit">Send</button>
+        <div class="composer__field">
+          <textarea class="composer__text" id="ask" rows="1" placeholder="Message the agent…" aria-label="Message"></textarea>
+          <button class="btn btn--primary btn--sm btn--icon btn--round composer__send" type="submit" aria-label="Send" title="Send" disabled><svg class="icon"><use href="#i-arrow-up"/></svg></button>
+        </div>
+      </div>
+      <div class="composer__bar">
+        <div class="dropdown"><button class="btn btn--ghost btn--sm" type="button" aria-haspopup="menu" aria-expanded="false"><span>Claude</span><svg class="icon icon--sm"><use href="#i-chevron-down"/></svg></button><div class="menu menu--up" role="menu" hidden></div></div>
+        <div class="dropdown"><button class="btn btn--ghost btn--sm" type="button" aria-haspopup="menu" aria-expanded="false"><span>Loading…</span><svg class="icon icon--sm"><use href="#i-chevron-down"/></svg></button><div class="menu menu--up" role="menu" hidden></div></div>
       </div>
     </form>
 
