@@ -49,3 +49,11 @@ def can_generate(running: Bool, pending: U32) -> Bool:
       False{}
     case False{}:
       (pending > 0 : U32)
+
+# The document is made of blocks: a sentence, and the law drawn under or beside it.
+def sentence() -> U32: 0
+def law_block() -> U32: 1
+
+# The minimum height of a block, in sentence lines (a block grows with its content).
+# Every block starts at one sentence line, so the reading block is never smaller than the writing one.
+def min_lines(kind: U32) -> U32: 1

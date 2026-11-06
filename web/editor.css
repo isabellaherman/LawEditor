@@ -28,3 +28,38 @@ html[data-narrow] .doc { padding: var(--space-5) var(--space-3) var(--space-8); 
 #laws-edit { display: flex; flex-direction: column; gap: var(--space-4); padding: 0 var(--space-2); }
 #laws-edit textarea { min-height: calc(var(--space-8) * 4); }
 .view-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+
+/* Document: each line is a pair, the sentence block and its law block.
+   Sentences (default): only the sentence. With laws: the law under it, aligned with the text.
+   Split: sentence left, law right, one row per pair. Narrow screens show split as "with laws". */
+.pair { display: flex; flex-direction: column; gap: var(--space-hairline); }
+.law { display: none; }
+/* Every block's minimum height is a number of sentence lines from EDITOR.bend (law_block_min_is_sentence_min).
+   The law block is a plain .block: same slot, same text row, same padding as the sentence. */
+.pair > .line { min-height: calc(var(--text-lg) * var(--leading-body) * var(--min-lines-sentence) + var(--space-1) * 2); }
+.pair > .law { min-height: calc(var(--text-lg) * var(--leading-body) * var(--min-lines-law) + var(--space-1) * 2); }
+.law .block__text { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.law .icon { color: var(--text-3); }
+.law--ok, .law--ok:hover { background: var(--surface-2); }
+.law--error, .law--error:hover { background: var(--conflict-soft); }
+.law--none, .law--none:hover { background: transparent; box-shadow: inset 0 0 0 var(--border-width) var(--border); }
+.law--busy, .law--busy:hover { background: transparent; box-shadow: inset 0 0 0 var(--border-width) var(--accent); }
+.pair:has(.block--title) .law, .law:empty { display: none !important; }
+
+.doc[data-view="laws"] .law,
+html[data-narrow] .doc[data-view="split"] .law { display: grid; margin-left: calc(var(--dot-size) + var(--space-3)); }
+.doc[data-view="laws"] .pair:has(.law--ok, .law--error, .law--busy, .law--none),
+html[data-narrow] .doc[data-view="split"] .pair { padding-bottom: var(--space-2); }
+
+html:not([data-narrow]) .doc[data-view="split"] { max-width: var(--window-max); }
+html:not([data-narrow]) .doc[data-view="split"] .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-4); align-items: start; }
+html:not([data-narrow]) .doc[data-view="split"] .law { display: grid; }
+html:not([data-narrow]) .doc[data-view="split"] .pair:has(.block--title) .line { grid-column: 1 / -1; }
+html:not([data-narrow]) .doc[data-view="split"] .pair:hover > .line { background: var(--surface-2); }
+.split-head { display: none; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-4); padding: 0 var(--space-2) var(--space-2); }
+html:not([data-narrow]) .doc[data-view="split"] .split-head { display: grid; }
+
+/* Credit, bottom left of the window. */
+.made-with { position: absolute; left: var(--space-5); bottom: var(--space-5); z-index: 4; }
+.made-with a { color: var(--text-2); text-underline-offset: var(--space-hairline); }
+.made-with a:hover { color: var(--text); }

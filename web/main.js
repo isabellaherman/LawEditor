@@ -43,18 +43,25 @@ const lawFor = (text) => laws.find((l) => l.sentence === text.trim());
 // =========================================================
 // Document: one block per line. Its state comes from EDITOR.bend.
 // =========================================================
+// Minimum block heights come from EDITOR.bend; editor.css reads them.
+document.documentElement.style.setProperty("--min-lines-sentence", E.min_lines(E.sentence()));
+document.documentElement.style.setProperty("--min-lines-law", E.min_lines(E.law_block()));
+
 const S = { title: E.title(), empty: E.empty(), busy: E.busy(), ok: E.ok(), error: E.error() };
 const DOT = { [S.empty]: "dot", [S.busy]: "dot dot--busy", [S.ok]: "dot dot--ok", [S.error]: "dot dot--error" };
 let current = null;
 let running = false;
 
+// A line is a pair: the sentence block (.line) and its law block (.law), drawn by the view.
 function makeBlock(kind = "text", text = "", after = null) {
-  const b = document.createElement("div");
-  b.className = "block" + (kind === "title" ? " block--title" : "");
-  b.innerHTML = '<div class="block__slot"></div><div class="block__text" contenteditable="true"></div>';
+  const pair = document.createElement("div");
+  pair.className = "pair";
+  pair.innerHTML = '<div class="block line"><div class="block__slot"></div><div class="block__text" contenteditable="true"></div></div><div class="block law"></div>';
+  const b = pair.firstChild;
+  if (kind === "title") b.classList.add("block--title");
   b.querySelector(".block__text").textContent = text;
   b.querySelector(".block__text").dataset.placeholder = "Write a rule and press Enter";
-  after ? after.after(b) : doc.append(b);
+  after ? after.parentElement.after(pair) : doc.append(pair);
   setState(b, kind === "title" ? S.title : S.empty);
   return b;
 }
@@ -66,30 +73,51 @@ function setState(b, state, out = "") {
   b.dataset.state = state;
   const empty = !textOf(b) && state === S.empty;
   b.querySelector(".block__slot").innerHTML = state === S.title || empty ? "" : `<span class="${DOT[state]}"></span>`;
-  b.querySelector(".block__out")?.remove();
-  if (out) {
-    const o = document.createElement("pre");
-    o.className = "block__out" + (state === S.error ? " block__out--error" : "");
-    o.textContent = out;
-    b.append(o);
-  }
+  if (state === S.error && out) b.querySelector(".dot").title = out;   // the reason, in the sentences view too
+  drawLaw(b.nextElementSibling, empty ? -1 : state, out);
   syncGen();
 }
-const select = (b) => doc.querySelectorAll(".block").forEach((x) => x.setAttribute("aria-selected", x === b));
+
+// The law block under (or beside) a sentence.
+const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function drawLaw(el, state, out) {
+  const icon = (n) => `<svg class="icon icon--sm"><use href="#i-${n}"/></svg>`;
+  el.className = "block law";
+  if (state === S.ok) {
+    const name = (out.match(/^law ([\w.]+)/m) || [])[1] || "";
+    el.classList.add("law--ok");
+    el.innerHTML = `<div class="block__slot">${icon("scale")}</div><div class="block__text"><span class="tag tag--law">LAW</span><span class="meta mono">${esc(name)}</span></div><pre class="block__out">${esc(out)}</pre>`;
+  } else if (state === S.error) {
+    el.classList.add("law--error");
+    el.innerHTML = `<div class="block__slot">${icon("triangle-alert")}</div><div class="block__text"><span class="tag tag--conflict">No law</span><span class="meta">The agent couldn't write one</span></div><pre class="block__out block__out--error">${esc(out)}</pre>`;
+  } else if (state === S.busy) {
+    el.classList.add("law--busy");
+    el.innerHTML = '<div class="block__slot"><span class="dot dot--busy"></span></div><div class="block__text"><span class="meta">Writing the law…</span></div>';
+  } else if (state === S.empty) {
+    el.classList.add("law--none");
+    el.innerHTML = '<div class="block__slot"><span class="dot"></span></div><div class="block__text"><span class="meta">No law yet. Generate LAWs to write one.</span></div>';
+  } else el.innerHTML = "";
+}
+const lines = () => [...doc.querySelectorAll(".line")];
+const select = (b) => lines().forEach((x) => x.setAttribute("aria-selected", x === b));
 function focusEnd(b) {
   const t = b.querySelector(".block__text"); t.focus();
   const r = document.createRange(); r.selectNodeContents(t); r.collapse(false);
   const s = getSelection(); s.removeAllRanges(); s.addRange(r);
 }
+// Title / Text: a dropdown on the line you are on.
+const KIND = { title: { label: "Title", icon: "heading-1" }, text: { label: "Text", icon: "pilcrow" } };
 function syncSize() {
   const kind = current && isTitle(current) ? "title" : "text";
-  $("size").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.kind === kind));
+  $("kind-label").textContent = KIND[kind].label;
+  $("kind").querySelector("[aria-haspopup] use").setAttribute("href", "#i-" + KIND[kind].icon);
+  $("kind").querySelectorAll(".menu__item").forEach((x) => x.setAttribute("aria-checked", x.dataset.kind === kind));
 }
 
-doc.addEventListener("focusin", (e) => { const b = e.target.closest(".block"); if (b) { current = b; syncSize(); } });
-doc.addEventListener("mousedown", (e) => { const b = e.target.closest(".block"); if (b && !isTitle(b) && textOf(b)) select(b); });
+doc.addEventListener("focusin", (e) => { const b = e.target.closest(".line"); if (b) { current = b; syncSize(); } });
+doc.addEventListener("mousedown", (e) => { const b = e.target.closest(".line"); if (b && !isTitle(b) && textOf(b)) select(b); });
 doc.addEventListener("keydown", (e) => {
-  const b = e.target.closest(".block"); if (!b) return;
+  const b = e.target.closest(".line"); if (!b) return;
   if (e.key === "Enter") {
     e.preventDefault();
     if (!textOf(b)) return;
@@ -97,13 +125,14 @@ doc.addEventListener("keydown", (e) => {
     focusEnd(makeBlock("text", "", b));
     save();
   }
-  if (e.key === "Backspace" && !textOf(b) && b.previousElementSibling) {
+  const prevPair = b.parentElement.previousElementSibling;
+  if (e.key === "Backspace" && !textOf(b) && prevPair?.classList.contains("pair")) {
     e.preventDefault();
-    const prev = b.previousElementSibling; b.remove(); focusEnd(prev); save();
+    b.parentElement.remove(); focusEnd(prevPair.querySelector(".line")); save();
   }
 });
 doc.addEventListener("input", (e) => {
-  const b = e.target.closest(".block"); if (!b) return;
+  const b = e.target.closest(".line"); if (!b) return;
   setState(b, E.after_edit(stateOf(b)));   // a result no longer matches edited text
   save();
 });
@@ -114,10 +143,9 @@ doc.addEventListener("paste", (e) => {
   document.execCommand("insertText", false, e.clipboardData.getData("text/plain").replace(/\s*\n\s*/g, " "));
 });
 
-$("size").addEventListener("mousedown", (e) => {
-  const btn = e.target.closest("button"); if (!btn || !current) return;
-  e.preventDefault();
-  const toTitle = btn.dataset.kind === "title";
+$("kind").addEventListener("pick", (e) => {
+  if (!current) return;
+  const toTitle = e.detail.dataset.kind === "title";
   current.classList.toggle("block--title", toTitle);
   setState(current, toTitle ? S.title : S.empty);
   syncSize(); save();
@@ -128,8 +156,8 @@ let saveT;
 function save() {
   clearTimeout(saveT);
   saveT = setTimeout(() => {
-    const lines = [...doc.querySelectorAll(".block")].filter((b) => textOf(b)).map((b) => (isTitle(b) ? "# " : "") + textOf(b));
-    writeFile("GDD.md", lines.join("\n") + "\n");
+    const out = lines().filter((b) => textOf(b)).map((b) => (isTitle(b) ? "# " : "") + textOf(b));
+    writeFile("GDD.md", out.join("\n") + "\n");
     renderLaws();
   }, 400);
 }
@@ -137,7 +165,7 @@ function save() {
 // =========================================================
 // Generate
 // =========================================================
-const pending = () => [...doc.querySelectorAll(".block")].filter((b) => !isTitle(b) && textOf(b) && E.is_pending(stateOf(b)));
+const pending = () => lines().filter((b) => !isTitle(b) && textOf(b) && E.is_pending(stateOf(b)));
 function syncGen() {
   $("gen").disabled = !E.can_generate(running, pending().length);
   $("gen-label").textContent = running ? "Generating…" : "Generate LAWs";
@@ -191,8 +219,8 @@ const REASON = { notfound: "not found", nologin: "not logged in", lost: "disconn
 
 const items = (control) => [control, ...AIS.map((a) => ({ id: a.id, mark: a.mark, label: a.name, ring: true }))];
 const agents = {
-  lg: mountAgent($("agent-lg"), { size: "lg", items: items({ id: "min", icon: "minimize-2", label: "Minimize" }), onPick: (id) => pick(id) }),
-  sm: mountAgent($("agent-sm"), { size: "sm", items: items({ id: "max", icon: "maximize-2", label: "Expand" }), onPick: (id) => pick(id) }),
+  lg: mountAgent($("agent-lg"), { size: "lg", open: "hover", items: items({ id: "min", icon: "minimize-2", label: "Minimize" }), onPick: (id) => pick(id) }),
+  sm: mountAgent($("agent-sm"), { size: "sm", open: "hover", items: items({ id: "max", icon: "maximize-2", label: "Expand" }), onPick: (id) => pick(id) }),
 };
 const visible = () => agents[win.dataset.agent];
 const both = (fn) => { fn(agents.lg); fn(agents.sm); };
@@ -251,7 +279,7 @@ async function loadLaws() {
 }
 function renderLaws() {
   const list = $("laws-list"); list.innerHTML = "";
-  const inDoc = new Set([...doc.querySelectorAll(".block")].filter((b) => !isTitle(b)).map(textOf));
+  const inDoc = new Set(lines().filter((b) => !isTitle(b)).map(textOf));
   if (!laws.length) list.innerHTML = '<p class="meta view-note">No laws yet. Write a rule in the document and generate.</p>';
   for (const l of laws) {
     const orphan = !inDoc.has(l.sentence);   // its sentence was deleted: keep the law, flag it
@@ -291,7 +319,7 @@ $("edit-save").addEventListener("click", async () => {
 });
 // A sentence whose law was removed by hand goes back to empty; one whose law exists is green.
 function refreshDocStates() {
-  doc.querySelectorAll(".block").forEach((b) => {
+  lines().forEach((b) => {
     if (isTitle(b) || !textOf(b) || stateOf(b) === S.busy) return;
     const l = lawFor(textOf(b));
     if (l) setState(b, S.ok, l.code.split("\n").slice(1).join("\n"));
@@ -347,6 +375,15 @@ side.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", 
   if (b.dataset.view === "laws") { editLaws(false); loadLaws(); }
   if (isNarrow()) setSide(false);
 }));
+
+// The document's view: sentences (default), with laws, or split.
+function setView(v) {
+  doc.dataset.view = v;
+  $("view").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === v));
+  try { localStorage.setItem("laweditor.view", v); } catch {}
+}
+$("view").addEventListener("change", (e) => setView(e.detail.dataset.view));
+try { const v = localStorage.getItem("laweditor.view"); if (["sentences", "laws", "split"].includes(v)) setView(v); } catch {}
 
 $("full").addEventListener("click", (e) => {
   const full = win.classList.toggle("is-full");

@@ -29,3 +29,7 @@ law nothing_to_generate:
 law one_run_at_a_time:
   for n: U32
   {E.can_generate(True{}, n) == False{} : Bool}
+
+# LAW: a law block and a sentence block have the same minimum height.
+law law_block_min_is_sentence_min:
+  {E.min_lines(E.law_block()) == E.min_lines(E.sentence()) : U32}

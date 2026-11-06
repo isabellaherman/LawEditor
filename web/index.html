@@ -24,9 +24,20 @@
   <div class="window__main">
     <div class="toolbar">
       <button class="btn btn--ghost btn--icon only-narrow" id="side-open" aria-label="Open side bar"><svg class="icon"><use href="#i-panel-left"/></svg></button>
-      <div class="segmented doc-only" id="size" data-manual>
-        <button aria-pressed="false" data-kind="title">Title</button>
-        <button aria-pressed="true" data-kind="text">Text</button>
+      <div class="dropdown doc-only" id="kind">
+        <button class="btn btn--ghost" aria-haspopup="menu" aria-expanded="false" title="Line type">
+          <svg class="icon"><use href="#i-pilcrow"/></svg><span id="kind-label">Text</span><svg class="icon icon--sm"><use href="#i-chevron-down"/></svg>
+        </button>
+        <div class="menu" role="menu" hidden>
+          <button class="menu__item" role="menuitemradio" aria-checked="false" data-kind="title"><svg class="icon"><use href="#i-heading-1"/></svg><span>Title</span><svg class="icon icon--sm menu__check"><use href="#i-check"/></svg></button>
+          <button class="menu__item" role="menuitemradio" aria-checked="true" data-kind="text"><svg class="icon"><use href="#i-pilcrow"/></svg><span>Text</span><svg class="icon icon--sm menu__check"><use href="#i-check"/></svg></button>
+        </div>
+      </div>
+      <div class="toolbar__spacer"></div>
+      <div class="segmented segmented--icons doc-only" id="view" aria-label="View">
+        <button aria-pressed="true" data-view="sentences" aria-label="Sentences" title="Sentences"><svg class="icon"><use href="#i-text"/></svg></button>
+        <button aria-pressed="false" data-view="laws" aria-label="Sentences with laws" title="Sentences with laws"><svg class="icon"><use href="#i-rows-2"/></svg></button>
+        <button aria-pressed="false" data-view="split" class="hide-narrow" aria-label="Split" title="Split"><svg class="icon"><use href="#i-columns-2"/></svg></button>
       </div>
       <div class="toolbar__spacer"></div>
       <div class="dock-sm"><div id="agent-sm"></div></div>
@@ -36,7 +47,9 @@
 
     <main class="page">
       <section class="view" id="view-doc">
-        <div class="doc" id="doc"></div>
+        <div class="doc" id="doc" data-view="sentences">
+          <div class="split-head"><span class="meta mono">GDD.md</span><span class="meta mono">LAWS.bend</span></div>
+        </div>
       </section>
 
       <section class="view" id="view-laws" hidden>
@@ -75,6 +88,8 @@
         </div>
       </section>
     </main>
+
+    <p class="meta made-with">Made with <a href="https://github.com/isabellaherman/Bend-UI" target="_blank" rel="noopener">Bend-UI</a></p>
 
     <div class="dock-lg"><div id="agent-lg"></div></div>
   </div>
