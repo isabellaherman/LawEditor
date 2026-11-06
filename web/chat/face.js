@@ -5,8 +5,8 @@ import { mountAgent, flyBetween } from "bend-ui/agent";
 export function createFace() {
   let pet = null;
   return {
-    to(slot) {
-      const from = pet && pet.face.getBoundingClientRect();
+    // from: where the face was (the start's big face), when it isn't beside an earlier reply.
+    to(slot, from = pet && pet.face.getBoundingClientRect()) {
       if (pet) pet.destroy();
       pet = mountAgent(slot, { size: "sm", items: [] });
       if (from && from.width) flyBetween(from, pet);

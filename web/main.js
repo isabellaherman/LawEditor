@@ -9,6 +9,7 @@ import claudeMark from "bend-ui/brand/claude.webp";
 import openaiMark from "bend-ui/brand/openai.svg";
 import E from "../EDITOR.bend";
 import { markdown } from "./markdown.js";
+import { highlight, toHtml } from "bend-ui/syntax";
 
 const $ = (id) => document.getElementById(id);
 const win = $("win"), doc = $("doc");
@@ -82,14 +83,15 @@ function setState(b, state, out = "", how = "") {
 }
 
 // The law block: the same .block as a sentence. Its dot is the law's state; its text is the law
-// (line by line), the reason it failed, or (while the agent works) the sentence being read.
+// (line by line, in color: Bend-UI's syntax), the reason it failed, or (while the agent works) the sentence being read.
 // No law: no block.
 const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 function drawLaw(el, state, out, sentence, how) {
   const block = (dot, text) => `<div class="block__slot"><span class="${dot}"></span></div>${text}`;
   const code = state === S.ok;
+  el.classList.toggle("syntax", code);
   let html = "";
-  if (code) html = block(DOT[S.ok], `<div class="block__text">${out.split("\n").map((l) => `<span class="block__line">${esc(l) || " "}</span>`).join("")}</div>`);
+  if (code) html = block(DOT[S.ok], `<div class="block__text">${out.split("\n").map((l) => `<span class="block__line">${toHtml(l) || " "}</span>`).join("")}</div>`);
   else if (state === S.error) html = block(DOT[S.error], `<div class="block__text">${esc(out)}</div>`);
   else if (state === S.busy) html = block(DOT[S.busy], `<div class="block__text thread__reading">${esc(sentence)}</div>`);
   if (how === "open") { el.classList.remove("block--code"); return openBlock(el, html); }
@@ -311,6 +313,7 @@ function renderLaws() {
     list.append(b);
   }
   $("types-code").textContent = typesSrc.trim() || "import Base";
+  highlight($("types-code").parentElement);
 }
 
 // Hold to edit: the ring fills in amber; let go early and nothing happens.
@@ -408,6 +411,7 @@ $("full").addEventListener("click", (e) => {
 
   const [gdd, agentMd] = await Promise.all([readFile("GDD.md"), readFile("AGENT.md")]);
   $("agent-md").innerHTML = markdown(agentMd || "# AGENT.md not found");
+  $("agent-md").querySelectorAll("pre").forEach(highlight);
   await loadLaws();
 
   const lines = gdd.split("\n").filter((l) => l.trim());

@@ -6,6 +6,8 @@ import { createFace } from "./chat/face.js";
 import { createModels } from "./chat/models.js";
 import { createComposer } from "./chat/composer.js";
 import { markdown } from "./markdown.js";
+import { highlight } from "bend-ui/syntax";
+import { createStart } from "./chat/start.js";
 
 const $ = (id) => document.getElementById(id);
 const said = [];   // [{ who, text }], oldest first
@@ -28,10 +30,15 @@ async function ask() {
   } catch { return "The LawEditor server isn't running."; }
 }
 
+const start = createStart(document.querySelector(".page"), $("composer"));
+let started = false;
+
 const composer = createComposer($("composer"), async (text) => {
+  const from = C.is_start(said.length) ? await start.leave() : undefined;
+  if (from !== undefined) { started = true; show(); }
   said.push({ who: C.person(), text }); messages.mine(text);
   const reply = messages.theirs();
-  face.to(reply.slot); face.lookAt(reply.el);
+  face.to(reply.slot, from ?? undefined); face.lookAt(reply.el);
   const answer = await ask();
   said.push({ who: C.agent(), text: answer });
   await reply.write(answer);
@@ -43,6 +50,7 @@ const composer = createComposer($("composer"), async (text) => {
 // replies, so the big agent (and its toolbar dock) step aside.
 let chatView = "chat", inChat = true;
 function show() {
+  start.show(inChat && chatView === "chat" && !started);
   $("view-chat").hidden = !(inChat && chatView === "chat");
   $("composer").hidden = !(inChat && chatView === "chat");
   $("view-chat-context").hidden = !(inChat && chatView === "context");
@@ -55,5 +63,5 @@ document.querySelectorAll("#side [data-view]").forEach((b) => b.addEventListener
   inChat = b.dataset.view === "chat"; show();
   if (inChat && chatView === "chat") composer.focus();
 }));
-fetch("/api/file/CHAT.md").then((r) => r.text()).then((md) => { $("chat-md").innerHTML = markdown(md || "# CHAT.md not found"); }).catch(() => {});
+fetch("/api/file/CHAT.md").then((r) => r.text()).then((md) => { $("chat-md").innerHTML = markdown(md || "# CHAT.md not found"); $("chat-md").querySelectorAll("pre").forEach(highlight); }).catch(() => {});
 show();

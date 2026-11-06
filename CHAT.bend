@@ -27,3 +27,7 @@ def empty() -> U32: 2
 # The model picker is on only when its list is ready.
 def can_pick(list: U32) -> Bool:
   U32.is_eq(list, 1)
+
+# The chat starts empty: the agent's face and the composer in the middle, until the first message.
+def is_start(messages: U32) -> Bool:
+  U32.is_eq(messages, 0)
