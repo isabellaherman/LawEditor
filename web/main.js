@@ -3,6 +3,8 @@
 
 import { isNarrow } from "bend-ui";
 import { mountAgent, flyBetween } from "bend-ui/agent";
+import { createThread, openBlock, formBlock } from "bend-ui/thread";
+import { createFollow } from "bend-ui/follow";
 import claudeMark from "bend-ui/brand/claude.webp";
 import openaiMark from "bend-ui/brand/openai.svg";
 import E from "../EDITOR.bend";
@@ -68,25 +70,32 @@ const textOf = (b) => b.querySelector(".block__text").textContent.trim();
 const isTitle = (b) => b.classList.contains("block--title");
 const stateOf = (b) => Number(b.dataset.state);
 
-function setState(b, state, out = "") {
+// how: "open" (the law block opens from nothing) or "form" (its text forms again), from Bend-UI's thread.
+function setState(b, state, out = "", how = "") {
   b.dataset.state = state;
   const empty = !textOf(b) && state === S.empty;
   b.querySelector(".block__slot").innerHTML = state === S.title || empty ? "" : `<span class="${DOT[state]}"></span>`;
   if (state === S.error && out) b.querySelector(".dot").title = out;   // the reason, in the sentences view too
-  drawLaw(b.nextElementSibling, empty ? -1 : state, out);
   syncGen();
+  return drawLaw(b.nextElementSibling, empty ? -1 : state, out, textOf(b), how);
 }
 
-// The law block: the same .block as a sentence. Its dot is the law's state; its text is the law,
-// the reason it failed, or (while the agent works) a placeholder. No law: no block.
+// The law block: the same .block as a sentence. Its dot is the law's state; its text is the law
+// (line by line), the reason it failed, or (while the agent works) the sentence being read.
+// No law: no block.
 const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-function drawLaw(el, state, out) {
+function drawLaw(el, state, out, sentence, how) {
   const block = (dot, text) => `<div class="block__slot"><span class="${dot}"></span></div>${text}`;
-  el.classList.toggle("block--code", state === S.ok);
-  if (state === S.ok) el.innerHTML = block(DOT[S.ok], `<div class="block__text">${esc(out)}</div>`);
-  else if (state === S.error) el.innerHTML = block(DOT[S.error], `<div class="block__text">${esc(out)}</div>`);
-  else if (state === S.busy) el.innerHTML = block(DOT[S.busy], '<div class="block__text" data-placeholder="Writing the law…"></div>');
-  else el.innerHTML = "";
+  const code = state === S.ok;
+  let html = "";
+  if (code) html = block(DOT[S.ok], `<div class="block__text">${out.split("\n").map((l) => `<span class="block__line">${esc(l) || " "}</span>`).join("")}</div>`);
+  else if (state === S.error) html = block(DOT[S.error], `<div class="block__text">${esc(out)}</div>`);
+  else if (state === S.busy) html = block(DOT[S.busy], `<div class="block__text thread__reading">${esc(sentence)}</div>`);
+  if (how === "open") { el.classList.remove("block--code"); return openBlock(el, html); }
+  if (how === "form") return formBlock(el, html, code ? "block--code" : "");
+  el.classList.toggle("block--code", code);
+  el.innerHTML = html;
+  return Promise.resolve();
 }
 
 const lines = () => [...doc.querySelectorAll(".line")];
@@ -163,14 +172,22 @@ function syncGen() {
   document.querySelectorAll(".agent__item[data-id='claude'], .agent__item[data-id='codex']").forEach((b) => b.disabled = running);
 }
 
+// The thread ties each sentence to its law while the agent works; the page follows (Bend-UI).
+const thread = createThread(doc);
+const follow = createFollow(document.querySelector(".page"), { button: $("follow") });
+
 $("gen").addEventListener("click", async () => {
   if (!conn.active) { const a = visible(); a.open(); a.ask(true); return; }   // no AI yet: ask for one
   running = true; syncGen();
-  for (const b of pending()) {
+  const list = pending();
+  setView("laws");
+  await thread.begin(list.map((b) => b.parentElement));
+  for (const [i, b] of list.entries()) {
     if (!conn.active || !b.isConnected) continue;
     const sentence = textOf(b);
-    setState(b, S.busy);
+    follow.to(b.parentElement);
     agents.lg.lookAtEl(b); agents.sm.lookAtEl(b);
+    await Promise.all([setState(b, S.busy, "", "open"), thread.start(i)]);
     let good = false, out = "";
     try {
       const r = await api("/api/generate/" + conn.active, sentence);
@@ -185,10 +202,14 @@ $("gen").addEventListener("click", async () => {
     if (!b.isConnected) continue;                       // deleted while the agent worked
     const edited = textOf(b) !== sentence;
     const next = E.after_result(edited, good);
-    setState(b, next, next === S.empty ? "" : out);
+    await Promise.all([setState(b, next, next === S.empty ? "" : out, "form"), thread.done(i, next === S.ok)]);
+    follow.to(b.parentElement);
   }
+  follow.stop();
   agents.lg.lookAtEl(null); agents.sm.lookAtEl(null);
   running = false; syncGen();
+  await thread.end();
+  await thread.release();
   await loadLaws();
 });
 
