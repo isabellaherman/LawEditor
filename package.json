@@ -1,6 +1,7 @@
 {
   "name": "laweditor",
   "private": true,
+  "version": "0.1.0",
   "type": "module",
   "dependencies": {
     "bend-ui": "github:isabellaherman/Bend-UI#main"

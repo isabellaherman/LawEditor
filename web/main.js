@@ -191,17 +191,7 @@ $("gen").addEventListener("click", async () => {
     follow.to(b.parentElement);
     agents.lg.lookAtEl(b); agents.sm.lookAtEl(b);
     await Promise.all([setState(b, S.busy, "", "open"), thread.start(i)]);
-    let good = false, out = "";
-    try {
-      const r = await api("/api/generate/" + conn.active, sentence);
-      const nl = r.text.indexOf("\n");
-      good = r.text.slice(0, nl) === "ok";
-      out = r.text.slice(nl + 1).trim();
-      if (good) out = out.split("\n").filter((l) => !/^# LAW: /.test(l)).join("\n");   // the sentence is already above it
-      if (!good) agentFailed(out);
-    } catch {
-      out = "The LawEditor server isn't running."; lose("server");
-    }
+    const { good, out } = await writeLaw(sentence);
     if (!b.isConnected) continue;                       // deleted while the agent worked
     const edited = textOf(b) !== sentence;
     const next = E.after_result(edited, good);
@@ -215,6 +205,43 @@ $("gen").addEventListener("click", async () => {
   await thread.release();
   await loadLaws();
   ensureLine();
+});
+
+// The law agent writes one sentence's law; the server checks it with Bend.
+async function writeLaw(sentence) {
+  let good = false, out = "";
+  try {
+    const r = await api("/api/generate/" + conn.active, sentence);
+    const nl = r.text.indexOf("\n");
+    good = r.text.slice(0, nl) === "ok";
+    out = r.text.slice(nl + 1).trim();
+    if (good) out = out.split("\n").filter((l) => !/^# LAW: /.test(l)).join("\n");   // the sentence is already above it
+    if (!good) agentFailed(out);
+  } catch {
+    out = "The LawEditor server isn't running."; lose("server");
+  }
+  return { good, out };
+}
+
+// The chat heard a rule and the person said Add (chat.js, HEAR.bend). The sentence goes in the document,
+// in its empty last line, and the law agent writes its law there, quietly: the chat stays open.
+// done(state, note) tells the chat how it went, with EDITOR.bend's states.
+document.addEventListener("laweditor:add", async (e) => {
+  const { sentence, done } = e.detail;
+  let b = lines().at(-1);
+  if (b && !textOf(b) && !isTitle(b)) b.querySelector(".block__text").textContent = sentence;
+  else b = makeBlock("text", sentence, b);
+  setState(b, S.empty); ensureLine(); save();
+  if (running) return done(S.empty, "Added to the document. Its law waits for Generate in Laws: another run is going.");
+  if (!conn.active) return done(S.empty, "Added to the document. Connect an AI in Laws to write its law.");
+  running = true; syncGen();
+  await setState(b, S.busy);
+  const { good, out } = await writeLaw(sentence);
+  const next = b.isConnected ? E.after_result(textOf(b) !== sentence, good) : S.empty;
+  if (b.isConnected) await setState(b, next, next === S.empty ? "" : out);
+  running = false; syncGen();
+  await loadLaws();
+  done(next, next === S.ok ? "In the document. Its law compiles: Bend checked it." : next === S.error ? out : "Added to the document. It changed meanwhile: generate it in Laws.");
 });
 
 // The document always ends with an empty line to write in (EDITOR.bend: needs_line).

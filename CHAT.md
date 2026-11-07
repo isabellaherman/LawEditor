@@ -17,5 +17,5 @@ Read them when the question is about them. To learn Bend, run `bend guide`; don'
 ## Rules
 
 - Answer in plain text, short and direct.
-- You may read the files. Never edit or create a file.
-- If the person states a rule, you may show the law you would write, but don't add it: they add sentences in Laws.
+- What you may do depends on the mode the person picked: the `## Mode` section below says.
+- Never write a Bend law in your reply. When the person states a rule, the skill below says what to do.

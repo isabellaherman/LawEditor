@@ -8,6 +8,7 @@
 import Base
 import ./MODELS.bend as Models
 import ./POLICY.bend as Policy
+import ./ASK.bend as Ask
 
 # ---------- Text ----------
 
@@ -193,6 +194,14 @@ def generate(+ai: String, agent_md: String, sentence: String) -> IO(String):
 def chat_md(+agent_md: String) -> String:
   String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ "CHAT.md"
 
+# HEAR.md, the chat's skill (it hears rules in the talk: HEAR.bend), lives there too.
+def hear_md(+agent_md: String) -> String:
+  String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ "HEAR.md"
+
+# HARNESS.md, what the chat may do and when it asks (POLICY.bend), lives there too.
+def harness_md(+agent_md: String) -> String:
+  String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ "HARNESS.md"
+
 # The chat: the agent answers the conversation so far, with the model picked in the chat.
 # What it may do comes from POLICY.bend (LAWS.bend: it only reads). No model: the CLI's own default.
 def chat_args.pick(is_codex: Bool, has_model: Bool, model: String, prompt: String) -> List<String>:
@@ -214,11 +223,77 @@ def chat_reply(agent: U32 & String) -> String:
   pick(U32.is_eq(code, 127), ok_text("error\nCould not start the agent: " ++ out), ok_text("ok\n" ++ out))
 
 # target: "<ai>/<model>" from /api/chat/<ai>/<model>.
-def chat(+target: String, agent_md: String, conversation: String) -> IO(String):
+def chat(+target: String, +agent_md: String, conversation: String) -> IO(String):
   do IO<String>:
     rules : String <- read_file(chat_md(agent_md))
-    agent : U32 & String <- run(nth(String.split(target, '/'), 0n), chat_args(nth(String.split(target, '/'), 0n), nth(String.split(target, '/'), 1n), rules ++ "\n\n## Chat\n\n" ++ conversation), 600000)
+    skill : String <- read_file(hear_md(agent_md))
+    agent : U32 & String <- run(nth(String.split(target, '/'), 0n), chat_args(nth(String.split(target, '/'), 0n), nth(String.split(target, '/'), 1n), rules ++ "\n\n" ++ Policy.mode_section(Policy.chat_mode()) ++ "\n\n" ++ skill ++ "\n\n## Chat\n\n" ++ conversation), 600000)
     return chat_reply(agent)
+
+# ---------- The chat that asks (Ask before changes: POLICY.bend, ASK.bend) ----------
+# Only Claude: it runs with --permission-prompts none, so what isn't allowed is refused and its
+# stream-json output says what it wanted. The page asks the person; on their answer the server resumes
+# the same session (--resume), with the actions they allowed. LAWS.bend stays denied (Policy.never).
+
+# xs, then rest: the args lists are built as one.
+def with_each(xs: List<&2, String>, rest: List<String>) -> List<String>:
+  match xs:
+    case Nil{}:
+      rest
+    case h <> t:
+      h <> with_each(t, rest)
+
+# The grants the page sends, one per tab; an empty one is no grant.
+def grants.keep(empty: Bool, h: String, rest: List<&2, String>) -> List<&2, String>:
+  match empty:
+    case True{}:
+      rest
+    case False{}:
+      h <> rest
+
+def grants.of(xs: List<&2, String>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      []
+    case +h <> t:
+      grants.keep(String.is_empty(h), h, grants.of(t))
+
+def ask_args.tail(has_session: Bool, session: String) -> List<String>:
+  match has_session:
+    case True{}:
+      ["--permission-prompts", "none", "--output-format", "stream-json", "--verbose", "--resume", session]
+    case False{}:
+      ["--permission-prompts", "none", "--output-format", "stream-json", "--verbose"]
+
+def ask_args.model(has_model: Bool, model: String, rest: List<String>) -> List<String>:
+  match has_model:
+    case True{}:
+      "--model" <> model <> rest
+    case False{}:
+      rest
+
+def ask_args(+model: String, grants: String, +session: String, prompt: String) -> List<String>:
+  "-p" <> prompt <> ask_args.model(Bool.not(String.is_empty(model)), model,
+    "--allowedTools" <> Policy.claude_tools(Policy.chat()) <> with_each(grants.of(String.split(grants, '\t')),
+    "--disallowedTools" <> with_each(Policy.never(), ask_args.tail(Bool.not(String.is_empty(session)), session))))
+
+def ask_reply(agent: U32 & String) -> String:
+  (+code, +out) = agent
+  pick(U32.is_eq(code, 127), ok_text("error\nCould not start the agent: " ++ out), ok_text(Ask.reply(out)))
+
+# POST /api/ask/<model>, body "<grants, by tab>\n<the conversation>": a new turn of the chat.
+def ask(+model: String, +agent_md: String, +body: String) -> IO(String):
+  do IO<String>:
+    rules : String <- read_file(chat_md(agent_md))
+    skill : String <- read_file(hear_md(agent_md))
+    agent : U32 & String <- run("claude", ask_args(model, Models.upto(body, '\n'), "", rules ++ "\n\n" ++ Policy.mode_section(Policy.Mode.AskBeforeChanges{}) ++ "\n\n" ++ skill ++ "\n\n## Chat\n\n" ++ Ask.after(body, "\n")), 600000)
+    return ask_reply(agent)
+
+# POST /api/allow/<model>, body "<session>\n<yes or no>\n<grants, by tab>": the person answered; the session goes on.
+def allow(+model: String, +body: String) -> IO(String):
+  do IO<String>:
+    agent : U32 & String <- run("claude", ask_args(model, nth(String.split(body, '\n'), 2n), nth(String.split(body, '\n'), 0n), Ask.told(String.eq(nth(String.split(body, '\n'), 1n), "yes"))), 600000)
+    return ask_reply(agent)
 
 # The models an AI offers, asked to its own CLI (MODELS.bend reads the answer). Only claude and codex.
 def is_ai(+ai: String) -> Bool:
@@ -291,7 +366,7 @@ def route_agent_md(agent_md: String) -> IO(String):
 def route_chat_md(+agent_md: String) -> IO(String):
   route_agent_md(chat_md(agent_md))
 
-# GET: /api/models/<ai>, /api/connect/<ai>, /api/file/AGENT.md, /api/file/CHAT.md, /api/file/<name>, or a file of the page.
+# GET: /api/models/<ai>, /api/connect/<ai>, /api/file/AGENT.md, /api/file/CHAT.md, /api/file/HEAR.md, /api/file/HARNESS.md, /api/file/<name>, or a file of the page.
 def route_get.files(is_file: Bool, +path: String, dist: String) -> IO(String):
   match is_file:
     case True{}:
@@ -299,12 +374,26 @@ def route_get.files(is_file: Bool, +path: String, dist: String) -> IO(String):
     case False{}:
       route_static(pick(String.eq(path, "/"), "/index.html", path), dist)
 
+def route_get.harness_md(is_harness_md: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
+  match is_harness_md:
+    case True{}:
+      route_agent_md(harness_md(agent_md))
+    case False{}:
+      route_get.files(String.starts_with(path, "/api/file/"), path, dist)
+
+def route_get.hear_md(is_hear_md: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
+  match is_hear_md:
+    case True{}:
+      route_agent_md(hear_md(agent_md))
+    case False{}:
+      route_get.harness_md(String.eq(path, "/api/file/HARNESS.md"), path, dist, agent_md)
+
 def route_get.chat_md(is_chat_md: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
   match is_chat_md:
     case True{}:
       route_chat_md(agent_md)
     case False{}:
-      route_get.files(String.starts_with(path, "/api/file/"), path, dist)
+      route_get.hear_md(String.eq(path, "/api/file/HEAR.md"), path, dist, agent_md)
 
 def route_get.agent(is_agent: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
   match is_agent:
@@ -365,8 +454,22 @@ def route_post.chat(is_chat: Bool, +path: String, body: String, agent_md: String
     case False{}:
       route_post.generate(String.starts_with(path, "/api/generate/"), path, body, agent_md)
 
+def route_post.allow(is_allow: Bool, +path: String, body: String, agent_md: String) -> IO(String):
+  match is_allow:
+    case True{}:
+      allow(after(path, "/api/allow/"), body)
+    case False{}:
+      route_post.chat(String.starts_with(path, "/api/chat/"), path, body, agent_md)
+
+def route_post.ask(is_ask: Bool, +path: String, body: String, agent_md: String) -> IO(String):
+  match is_ask:
+    case True{}:
+      ask(after(path, "/api/ask/"), agent_md, body)
+    case False{}:
+      route_post.allow(String.starts_with(path, "/api/allow/"), path, body, agent_md)
+
 def route_post(+path: String, body: String, agent_md: String) -> IO(String):
-  route_post.chat(String.starts_with(path, "/api/chat/"), path, body, agent_md)
+  route_post.ask(String.starts_with(path, "/api/ask/"), path, body, agent_md)
 
 def route.at(is_post: Bool, +req: String, dist: String, agent_md: String) -> IO(String):
   match is_post:

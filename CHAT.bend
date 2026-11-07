@@ -7,12 +7,20 @@ def person() -> U32: 0
 def agent() -> U32: 1
 
 # Send is on when there is text and the agent is not answering.
-def can_send(answering: Bool, length: U32) -> Bool:
+def can_send.talk(answering: Bool, length: U32) -> Bool:
   match answering:
     case True{}:
       False{}
     case False{}:
       (length > 0 : U32)
+
+# A question waits for the person (Add / Always add / Don't add, HEAR.bend): the talk stops until they answer.
+def can_send(asking: Bool, answering: Bool, length: U32) -> Bool:
+  match asking:
+    case True{}:
+      False{}
+    case False{}:
+      can_send.talk(answering, length)
 
 # The agent's latest message: it says what it reads, then its words form, then it is done.
 def reading() -> U32: 0
