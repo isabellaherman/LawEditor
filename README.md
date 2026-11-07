@@ -28,6 +28,7 @@ The editor's own rules (`LAWS.bend`, proved in `PROOF.bend`):
 - If a line was edited while the agent worked, the answer is dropped.
 - With nothing pending, there is nothing to generate; and one run at a time.
 - A law block and a sentence block have the same minimum height.
+- The chat may only read (`POLICY.bend`).
 
 ## Run
 
@@ -72,6 +73,7 @@ The selector shows the sentences alone, with their laws, or side by side. Two bu
 | `EDITOR.bend` | The editor's logic (line states, when Generate is on) |
 | `CHAT.bend` | The chat's logic (who wrote a message, the empty start, the reply's phases, the model list's states, when Send is on) |
 | `MODELS.bend` | Reads the models each AI's CLI offers |
+| `POLICY.bend` | What each agent may do: the chat reads; the law agent reads, edits, writes and runs bend |
 | `LAWS.bend` / `PROOF.bend` | The editor's own rules and their proofs (`bun run check`) |
 | `AGENT.md` | What the law agent is told |
 | `CHAT.md` | What the chat is told (next to `AGENT.md`) |

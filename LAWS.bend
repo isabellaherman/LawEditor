@@ -3,6 +3,7 @@
 
 import Base
 import ./EDITOR.bend as E
+import ./POLICY.bend as P
 
 # LAW: a title never gets a state.
 law title_stays_title:
@@ -33,3 +34,7 @@ law one_run_at_a_time:
 # LAW: a law block and a sentence block have the same minimum height.
 law law_block_min_is_sentence_min:
   {E.min_lines(E.law_block()) == E.min_lines(E.sentence()) : U32}
+
+# LAW: the chat may only read.
+law chat_only_reads:
+  {P.tools(P.chat()) == [P.read()] : List<U32>}

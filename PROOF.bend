@@ -23,3 +23,6 @@ def Laws.one_run_at_a_time(n):
 
 def Laws.law_block_min_is_sentence_min():
   {==}
+
+def Laws.chat_only_reads():
+  {==}
