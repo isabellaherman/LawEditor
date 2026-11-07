@@ -38,3 +38,11 @@ law law_block_min_is_sentence_min:
 # LAW: the chat may only read.
 law chat_only_reads:
   {P.tools(P.chat()) == [P.read()] : List<U32>}
+
+# LAW: from Claude, the chat gets only Read.
+law chat_claude_reads:
+  {P.claude_tools(P.chat()) == "Read" : String}
+
+# LAW: from Codex, the chat gets the read-only sandbox.
+law chat_codex_reads:
+  {P.codex_sandbox(P.chat()) == "read-only" : String}

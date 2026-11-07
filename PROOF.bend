@@ -26,3 +26,9 @@ def Laws.law_block_min_is_sentence_min():
 
 def Laws.chat_only_reads():
   {==}
+
+def Laws.chat_claude_reads():
+  {==}
+
+def Laws.chat_codex_reads():
+  {==}

@@ -7,6 +7,7 @@
 
 import Base
 import ./MODELS.bend as Models
+import ./POLICY.bend as Policy
 
 # ---------- Text ----------
 
@@ -192,17 +193,17 @@ def chat_md(+agent_md: String) -> String:
   String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ "CHAT.md"
 
 # The chat: the agent answers the conversation so far, with the model picked in the chat.
-# It may read the files here, never edit them. No model: the CLI's own default.
+# What it may do comes from POLICY.bend (LAWS.bend: it only reads). No model: the CLI's own default.
 def chat_args.pick(is_codex: Bool, has_model: Bool, model: String, prompt: String) -> List<String>:
   match is_codex has_model:
     case True{} True{}:
-      ["exec", "-m", model, "--sandbox", "read-only", prompt]
+      ["exec", "-m", model, "--sandbox", Policy.codex_sandbox(Policy.chat()), prompt]
     case True{} False{}:
-      ["exec", "--sandbox", "read-only", prompt]
+      ["exec", "--sandbox", Policy.codex_sandbox(Policy.chat()), prompt]
     case False{} True{}:
-      ["-p", prompt, "--model", model, "--allowedTools", "Read"]
+      ["-p", prompt, "--model", model, "--allowedTools", Policy.claude_tools(Policy.chat())]
     case False{} False{}:
-      ["-p", prompt, "--allowedTools", "Read"]
+      ["-p", prompt, "--allowedTools", Policy.claude_tools(Policy.chat())]
 
 def chat_args(+ai: String, +model: String, prompt: String) -> List<String>:
   chat_args.pick(String.eq(ai, "codex"), Bool.not(String.is_empty(model)), model, prompt)
