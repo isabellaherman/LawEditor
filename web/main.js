@@ -10,9 +10,11 @@ import openaiMark from "bend-ui/brand/openai.svg";
 import E from "../EDITOR.bend";
 import { markdown } from "./markdown.js";
 import { highlight, toHtml } from "bend-ui/syntax";
+import pkg from "../package.json";
 
 const $ = (id) => document.getElementById(id);
 const win = $("win"), doc = $("doc");
+$("version").textContent = "v" + pkg.version;   // the app's version, from package.json
 
 // =========================================================
 // Server
