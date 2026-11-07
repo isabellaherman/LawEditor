@@ -159,13 +159,14 @@ def connect(ai: String) -> IO(String):
     r : U32 & String <- run(ai, ["--version"], 15000)
     return connect_reply(r)
 
-# The command line for each agent: it may read and edit files here, and run bend.
+# The command line for each agent. What it may do comes from POLICY.bend.
+# Codex has no per-command allowlist: in its workspace-write sandbox it may run any command in this folder.
 def agent_args.pick(is_codex: Bool, prompt: String) -> List<String>:
   match is_codex:
     case True{}:
-      ["exec", "--full-auto", prompt]
+      ["exec", "--sandbox", Policy.codex_sandbox(Policy.law_agent()), prompt]
     case False{}:
-      ["-p", prompt, "--allowedTools", "Read,Edit,Write,Bash(bend:*)", "--permission-mode", "acceptEdits"]
+      ["-p", prompt, "--allowedTools", Policy.claude_tools(Policy.law_agent()), "--permission-mode", "acceptEdits"]
 
 def agent_args(+ai: String, prompt: String) -> List<String>:
   agent_args.pick(String.eq(ai, "codex"), prompt)

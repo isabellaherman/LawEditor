@@ -46,3 +46,19 @@ law chat_claude_reads:
 # LAW: from Codex, the chat gets the read-only sandbox.
 law chat_codex_reads:
   {P.codex_sandbox(P.chat()) == "read-only" : String}
+
+# LAW: the chat never changes a file.
+law chat_never_changes:
+  {P.changes(P.tools(P.chat())) == False{} : Bool}
+
+# LAW: the law agent may read, edit, write and run bend, and nothing else.
+law law_agent_tools:
+  {P.tools(P.law_agent()) == [P.read(), P.edit(), P.write(), P.run_bend()] : List<U32>}
+
+# LAW: from Claude, the law agent gets Read, Edit, Write and only bend in the shell.
+law law_agent_claude:
+  {P.claude_tools(P.law_agent()) == "Read,Edit,Write,Bash(bend:*)" : String}
+
+# LAW: from Codex, the law agent gets the sandbox that writes only in the project folder.
+law law_agent_codex:
+  {P.codex_sandbox(P.law_agent()) == "workspace-write" : String}

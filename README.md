@@ -18,6 +18,7 @@ Nothing here asks to be trusted. Each claim below is checked by the Bend compile
 | The look stays on the design system: spacing scale, control heights, nested radii, the 4 grid | Bend-UI's laws: a value off the scale doesn't compile |
 | Shortcuts never clash, keep the browser's keys, and never fire while you type | Bend-UI's key laws |
 | The chat never edits your files | `POLICY.bend` gives the chat only Read; laws prove that becomes Claude's `--allowedTools Read` and Codex's `--sandbox read-only`, and the server takes the flags from there. The CLI enforces them |
+| The law agent reads, edits, writes and runs only bend | `POLICY.bend`; laws prove Claude gets `--allowedTools Read,Edit,Write,Bash(bend:*)`. Codex can't allow one command: it gets `--sandbox workspace-write`, so it writes only in the project folder but may run other commands there |
 | You see exactly what the agents are told | Laws › Context shows `AGENT.md`, Chat › Context shows `CHAT.md`; the server sends those files as they are |
 | The model lists are real | Read from each AI's CLI by `MODELS.bend`; none is typed by hand |
 
@@ -28,7 +29,8 @@ The editor's own rules (`LAWS.bend`, proved in `PROOF.bend`):
 - If a line was edited while the agent worked, the answer is dropped.
 - With nothing pending, there is nothing to generate; and one run at a time.
 - A law block and a sentence block have the same minimum height.
-- The chat may only read (`POLICY.bend`): Claude gets `Read`, Codex the `read-only` sandbox.
+- The chat may only read, and never changes a file (`POLICY.bend`): Claude gets `Read`, Codex the `read-only` sandbox.
+- The law agent may read, edit, write and run bend, and nothing else: Claude gets exactly that; Codex writes only in the project folder.
 
 ## Run
 

@@ -32,3 +32,15 @@ def Laws.chat_claude_reads():
 
 def Laws.chat_codex_reads():
   {==}
+
+def Laws.chat_never_changes():
+  {==}
+
+def Laws.law_agent_tools():
+  {==}
+
+def Laws.law_agent_claude():
+  {==}
+
+def Laws.law_agent_codex():
+  {==}
