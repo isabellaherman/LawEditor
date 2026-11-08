@@ -6,11 +6,17 @@ Versions stay at 0.x until the MVP. Each iteration raises the last digit.
 
 What the person asked for, as goals. Each one becomes an iteration when it's picked.
 
-- The chat shows its answer while it writes it, as Claude does.
 - The chat answers fast.
 - The game the chat builds follows the laws: Bend checks the game itself, not only `TYPES.bend`.
 - The chat proposes only sentences that are rules.
 - Codex asks before changes too.
+- Codex's answer comes without its own notice ("Reading additional input from stdin...").
+- When a project is done, the chat shows a link that opens its folder on the computer.
+
+## 0.1.3 (2026-11-07)
+
+- **The chat shows its answer while it writes it** (Claude). Claude runs with `--include-partial-messages` and its output goes to a file for the turn (`/tmp/laweditor-turn-<id>.jsonl`; the id keeps only letters and digits). The page asks `GET /api/progress/<id>` every 300 ms and draws the text so far; `ASK.bend` reads it (the message being written now). Codex still answers all at once. Measured: the first words show about 3 s after sending, instead of the whole answer at the end.
+- **The server runs compiled** (`bun run start` builds `dist/laweditor-server`). Run as `bend server.bend`, Bend waits for a program to finish before it answers anything else, so the page couldn't ask for the answer so far; the compiled server answers while Claude works.
 
 ## 0.1.2 (2026-11-07)
 

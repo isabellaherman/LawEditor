@@ -22,11 +22,14 @@ export function createMessages(list, page) {
     m.innerHTML = '<div class="msg__face"><div></div></div><div><span class="thread__reading">Reading your project…</span></div>';
     list.append(m); down();
     const body = m.lastChild;
-    let phase = C.reading();
+    let phase = C.reading(), streamed = false;
     return {
       el: m, slot: m.firstChild.firstChild,
+      // The answer while it is written (Claude streams it): shown as it comes, no word motion.
+      live(text) { streamed = true; phase = C.writing(); body.textContent = text; down(); },
       // The answer arrives whole from the CLI; its words appear one after another, each fading in.
       async write(text) {
+        if (streamed) { body.textContent = text; phase = C.done(); down(); return; }   // already on screen
         phase = C.writing(); body.textContent = "";
         for (const w of text.split(/(\s+)/).filter(Boolean)) {
           const s = document.createElement("span");

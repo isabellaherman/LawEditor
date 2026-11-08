@@ -7,6 +7,7 @@
 # resumes the same session (--resume) with that one action allowed.
 
 import Base
+import ./MODELS.bend as Models
 
 # ---------- Text ----------
 
@@ -147,6 +148,67 @@ def preview(+t: String, +inp: String) -> String:
 def result(+out: String) -> String:
   field(out, "result")
 
+# ---------- The answer while it is written ----------
+# Each turn writes Claude's output to its own file, named by an id the page picks. Only letters and
+# digits are kept from that id, so it can't point anywhere else.
+def safe_id.keep(+c: Char, ok: Bool, rest: String) -> String:
+  match ok:
+    case True{}:
+      SCon{c, rest}
+    case False{}:
+      rest
+
+def safe_id(s: String) -> String:
+  match s:
+    case SNil{}:
+      ""
+    case SCon{+h, t}:
+      safe_id.keep(h, (Char.is_alpha(h) || Char.is_digit(h)), safe_id(t))
+
+def turn_file(id: String) -> String:
+  "/tmp/laweditor-turn-" ++ safe_id(id) ++ ".jsonl"
+
+# With --include-partial-messages, Claude sends each piece of text as it writes it:
+# {"type":"stream_event","event":{"type":"message_start",…}} opens a message, then
+# {"delta":{"type":"text_delta","text":"Hello,"}} pieces follow. A reply can hold several messages
+# (it writes, reads a file, writes again): the page shows the one being written now.
+
+def text_pieces(xs: List<&2, String>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case h <> t:
+      jstr(String.drop(h, String.length("\"text_delta\",\"text\":\""))) ++ text_pieces(t)
+
+def text_of(xs: List<&2, String>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case h <> t:
+      text_pieces(t)
+
+def last_message.of(m: Maybe<&2, String>) -> String:
+  match m:
+    case None{}:
+      ""
+    case Some{s}:
+      s
+
+# The text of the message being written now ("" while the chat is reading a file).
+def progress(+out: String) -> String:
+  text_of(Models.pieces(last_message.of(List.last(&2, String, Models.pieces(out, "\"type\":\"message_start\""))), "\"text_delta\",\"text\":\""))
+
+# The answer when it is done; if Claude gave none (it couldn't start), what it printed.
+def result_or.at(+out: String, has: Bool) -> String:
+  match has:
+    case True{}:
+      result(out)
+    case False{}:
+      out
+
+def result_or(+out: String) -> String:
+  result_or.at(out, String.contains(out, "\"result\":\""))
+
 # What the page gets. "ask" lines: session, grant, question, then the preview (it may span lines).
 def reply.ask(+out: String) -> String:
   "ask\n" ++ session(out) ++ "\n" ++ grant(tool(out), target(tool(out), input(out))) ++ "\n" ++
@@ -157,7 +219,7 @@ def reply.at(+out: String, asks: Bool) -> String:
     case True{}:
       reply.ask(out)
     case False{}:
-      "ok\n" ++ result(out)
+      "ok\n" ++ result_or(out)
 
 def reply(+out: String) -> String:
   reply.at(out, denied(out))

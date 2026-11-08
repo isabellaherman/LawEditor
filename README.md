@@ -44,12 +44,12 @@ bun install
 bun run start
 ```
 
-Open http://127.0.0.1:4280. Your project lives in `project/`: `GDD.md` (your sentences), `TYPES.bend` (what the laws talk about) and `LAWS.bend` (the laws). To use another folder, run the server from it:
+Open http://127.0.0.1:4280. Your project lives in `project/`: `GDD.md` (your sentences), `TYPES.bend` (what the laws talk about) and `LAWS.bend` (the laws). `bun run start` builds the page and the server (`dist/laweditor-server`, compiled: it answers while the chat works). To use another folder, run the server from it:
 
 ```bash
-bun run build
+bun run build && bun run server
 cd ~/my-project
-bend /path/to/LawEditor/server.bend /path/to/LawEditor/dist /path/to/LawEditor/AGENT.md
+/path/to/LawEditor/dist/laweditor-server /path/to/LawEditor/dist /path/to/LawEditor/AGENT.md
 ```
 
 ## How it works

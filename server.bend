@@ -145,10 +145,23 @@ def run_out(r: Result<&1, &1, U32 & String, U32 & (String & String)>) -> U32 & S
     case Done{(code, (out, err))}:
       (code, out ++ err)
 
+# Runs a program with its output going to a file as it is written, so another request can read it
+# meanwhile (the chat's answer while it is written: GET /api/progress/<id>). sh only redirects: the
+# file and every arg are passed as arguments ("$0", "$@"), never pasted into the command.
+def run_to.out(r: U32 & String, text: String) -> U32 & String:
+  (code, err) = r
+  (code, text ++ err)
+
 def run(program: String, args: List<String>, timeout_ms: U32) -> IO(U32 & String):
   do IO<U32 & String>:
     r : Result<&1, &1, U32 & String, U32 & (String & String)> <- Process.run(program, args, "", 4194304, timeout_ms)
     return run_out(r)
+
+def run_to(+file: String, program: String, args: List<String>, timeout_ms: U32) -> IO(U32 & String):
+  do IO<U32 & String>:
+    r : Result<&1, &1, U32 & String, U32 & (String & String)> <- Process.run("sh", "-c" <> "\"$@\" > \"$0\"" <> file <> program <> args, "", 4194304, timeout_ms)
+    text : String <- read_file(file)
+    return run_to.out(run_out(r), text)
 
 # Is the agent's command installed? `claude --version` / `codex --version`.
 def connect_reply(r: U32 & String) -> String:
@@ -211,24 +224,50 @@ def chat_args.pick(is_codex: Bool, has_model: Bool, model: String, prompt: Strin
     case True{} False{}:
       ["exec", "--sandbox", Policy.codex_sandbox(Policy.chat()), prompt]
     case False{} True{}:
-      ["-p", prompt, Policy.claude_isolation(), "--model", model, "--allowedTools", Policy.claude_tools(Policy.chat())]
+      ["-p", prompt, Policy.claude_isolation(), "--model", model, "--allowedTools", Policy.claude_tools(Policy.chat()), "--output-format", "stream-json", "--verbose", "--include-partial-messages"]
     case False{} False{}:
-      ["-p", prompt, Policy.claude_isolation(), "--allowedTools", Policy.claude_tools(Policy.chat())]
+      ["-p", prompt, Policy.claude_isolation(), "--allowedTools", Policy.claude_tools(Policy.chat()), "--output-format", "stream-json", "--verbose", "--include-partial-messages"]
 
 def chat_args(+ai: String, +model: String, prompt: String) -> List<String>:
   chat_args.pick(String.eq(ai, "codex"), Bool.not(String.is_empty(model)), model, prompt)
 
-def chat_reply(agent: U32 & String) -> String:
-  (+code, +out) = agent
-  pick(U32.is_eq(code, 127), ok_text("error\nCould not start the agent: " ++ out), ok_text("ok\n" ++ out))
+# Codex answers in plain text, all at once. Claude streams JSON (ASK.bend reads its answer).
+def chat_reply.at(is_codex: Bool, +out: String) -> String:
+  match is_codex:
+    case True{}:
+      "ok\n" ++ out
+    case False{}:
+      "ok\n" ++ Ask.result_or(out)
 
-# target: "<ai>/<model>" from /api/chat/<ai>/<model>.
+def chat_reply(is_codex: Bool, agent: U32 & String) -> String:
+  (+code, +out) = agent
+  pick(U32.is_eq(code, 127), ok_text("error\nCould not start the agent: " ++ out), ok_text(chat_reply.at(is_codex, out)))
+
+# Codex runs as before; Claude writes its answer to the turn's file as it goes.
+def chat_run(is_codex: Bool, +ai: String, +id: String, args: List<String>) -> IO(U32 & String):
+  match is_codex:
+    case True{}:
+      run(ai, args, 600000)
+    case False{}:
+      run_to(Ask.turn_file(id), ai, args, 600000)
+
+def chat.go(+ai: String, model: String, +id: String, prompt: String) -> IO(String):
+  do IO<String>:
+    agent : U32 & String <- chat_run(String.eq(ai, "codex"), ai, id, chat_args(ai, model, prompt))
+    return chat_reply(String.eq(ai, "codex"), agent)
+
+# target: "<ai>/<model>/<id>" from /api/chat/<ai>/<model>/<id>; id names the turn's file.
 def chat(+target: String, +agent_md: String, conversation: String) -> IO(String):
   do IO<String>:
     rules : String <- read_file(chat_md(agent_md))
     skill : String <- read_file(hear_md(agent_md))
-    agent : U32 & String <- run(nth(String.split(target, '/'), 0n), chat_args(nth(String.split(target, '/'), 0n), nth(String.split(target, '/'), 1n), rules ++ "\n\n" ++ Policy.mode_section(Policy.chat_mode()) ++ "\n\n" ++ skill ++ "\n\n## Chat\n\n" ++ conversation), 600000)
-    return chat_reply(agent)
+    chat.go(nth(String.split(target, '/'), 0n), nth(String.split(target, '/'), 1n), nth(String.split(target, '/'), 2n), rules ++ "\n\n" ++ Policy.mode_section(Policy.chat_mode()) ++ "\n\n" ++ skill ++ "\n\n## Chat\n\n" ++ conversation)
+
+# GET /api/progress/<id>: the answer so far, while the chat writes it.
+def progress(id: String) -> IO(String):
+  do IO<String>:
+    text : String <- read_file(Ask.turn_file(id))
+    return ok_text(Ask.progress(text))
 
 # ---------- The chat that asks (Ask before changes: POLICY.bend, ASK.bend) ----------
 # Only Claude: it runs with --permission-prompts none, so what isn't allowed is refused and its
@@ -261,9 +300,9 @@ def grants.of(xs: List<&2, String>) -> List<&2, String>:
 def ask_args.tail(has_session: Bool, session: String) -> List<String>:
   match has_session:
     case True{}:
-      ["--permission-prompts", "none", "--output-format", "stream-json", "--verbose", "--resume", session]
+      ["--permission-prompts", "none", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--resume", session]
     case False{}:
-      ["--permission-prompts", "none", "--output-format", "stream-json", "--verbose"]
+      ["--permission-prompts", "none", "--output-format", "stream-json", "--verbose", "--include-partial-messages"]
 
 def ask_args.model(has_model: Bool, model: String, rest: List<String>) -> List<String>:
   match has_model:
@@ -281,18 +320,18 @@ def ask_reply(agent: U32 & String) -> String:
   (+code, +out) = agent
   pick(U32.is_eq(code, 127), ok_text("error\nCould not start the agent: " ++ out), ok_text(Ask.reply(out)))
 
-# POST /api/ask/<model>, body "<grants, by tab>\n<the conversation>": a new turn of the chat.
-def ask(+model: String, +agent_md: String, +body: String) -> IO(String):
+# POST /api/ask/<model>/<id>, body "<grants, by tab>\n<the conversation>": a new turn of the chat.
+def ask(+target: String, +agent_md: String, +body: String) -> IO(String):
   do IO<String>:
     rules : String <- read_file(chat_md(agent_md))
     skill : String <- read_file(hear_md(agent_md))
-    agent : U32 & String <- run("claude", ask_args(model, Models.upto(body, '\n'), "", rules ++ "\n\n" ++ Policy.mode_section(Policy.Mode.AskBeforeChanges{}) ++ "\n\n" ++ skill ++ "\n\n## Chat\n\n" ++ Ask.after(body, "\n")), 600000)
+    agent : U32 & String <- run_to(Ask.turn_file(nth(String.split(target, '/'), 1n)), "claude", ask_args(nth(String.split(target, '/'), 0n), Models.upto(body, '\n'), "", rules ++ "\n\n" ++ Policy.mode_section(Policy.Mode.AskBeforeChanges{}) ++ "\n\n" ++ skill ++ "\n\n## Chat\n\n" ++ Ask.after(body, "\n")), 600000)
     return ask_reply(agent)
 
-# POST /api/allow/<model>, body "<session>\n<yes or no>\n<grants, by tab>": the person answered; the session goes on.
-def allow(+model: String, +body: String) -> IO(String):
+# POST /api/allow/<model>/<id>, body "<session>\n<yes or no>\n<grants, by tab>": the person answered; the session goes on.
+def allow(+target: String, +body: String) -> IO(String):
   do IO<String>:
-    agent : U32 & String <- run("claude", ask_args(model, nth(String.split(body, '\n'), 2n), nth(String.split(body, '\n'), 0n), Ask.told(String.eq(nth(String.split(body, '\n'), 1n), "yes"), nth(String.split(body, '\n'), 2n))), 600000)
+    agent : U32 & String <- run_to(Ask.turn_file(nth(String.split(target, '/'), 1n)), "claude", ask_args(nth(String.split(target, '/'), 0n), nth(String.split(body, '\n'), 2n), nth(String.split(body, '\n'), 0n), Ask.told(String.eq(nth(String.split(body, '\n'), 1n), "yes"), nth(String.split(body, '\n'), 2n))), 600000)
     return ask_reply(agent)
 
 # The models an AI offers, asked to its own CLI (MODELS.bend reads the answer). Only claude and codex.
@@ -416,8 +455,15 @@ def route_get.models(is_models: Bool, +path: String, dist: String, agent_md: Str
     case False{}:
       route_get.connect(String.starts_with(path, "/api/connect/"), path, dist, agent_md)
 
+def route_get.progress(is_progress: Bool, +path: String, dist: String, agent_md: String) -> IO(String):
+  match is_progress:
+    case True{}:
+      progress(after(path, "/api/progress/"))
+    case False{}:
+      route_get.models(String.starts_with(path, "/api/models/"), path, dist, agent_md)
+
 def route_get(+path: String, dist: String, agent_md: String) -> IO(String):
-  route_get.models(String.starts_with(path, "/api/models/"), path, dist, agent_md)
+  route_get.progress(String.starts_with(path, "/api/progress/"), path, dist, agent_md)
 
 # POST: /api/generate/<ai> (body: the sentence), /api/chat/<ai>/<model> (body: the conversation),
 # /api/file/<name> (body: the file).

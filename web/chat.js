@@ -31,6 +31,24 @@ async function post(path, body) {
   try { return await (await fetch(path, { method: "POST", body })).text(); }
   catch { return "error\nThe LawEditor server isn't running."; }
 }
+// A turn: the request runs while the page asks the server, every 300 ms, for the answer so far
+// (GET /api/progress/<id>, read by ASK.bend from the turn's file). Codex has none: its answer comes whole.
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function streamed(path, body, reply) {
+  const id = newId();
+  let done = false;
+  const poll = (async () => {
+    while (!done) {
+      await sleep(300);
+      if (done) break;
+      try { const text = await (await fetch(`/api/progress/${id}`)).text(); if (!done && text.trim()) reply.live(H.words(text)); } catch {}
+    }
+  })();
+  const res = await post(`${path}/${id}`, body);
+  done = true; await poll;
+  return res;
+}
 const textOf = (res) => res.slice(res.indexOf("\n") + 1).trim() || "The agent didn't answer.";
 
 // Ask before changes (POLICY.bend, ASK.bend): what the chat may not do yet comes back as a question.
@@ -43,7 +61,7 @@ const ASK_ANSWERS = [
   { label: "Allow", value: A.allow(), kind: "btn--primary" },
 ];
 async function askFirst(model, reply) {
-  let res = await post(`/api/ask/${model}`, always.join("\t") + "\n" + conversation());
+  let res = await streamed(`/api/ask/${model}`, always.join("\t") + "\n" + conversation(), reply);
   while (res.startsWith("ask\n")) {
     const [, session, grant, question, ...preview] = res.split("\n");
     reply.el.remove();   // the card takes the reply's place; the answer comes after it
@@ -56,7 +74,7 @@ async function askFirst(model, reply) {
     composer.hold(false);
     reply = messages.theirs(); face.to(reply.slot); face.lookAt(reply.el);
     const grants = allowed && !always.includes(grant) ? [...always, grant] : always;
-    res = await post(`/api/allow/${model}`, session + "\n" + (allowed ? "yes" : "no") + "\n" + grants.join("\t"));
+    res = await streamed(`/api/allow/${model}`, session + "\n" + (allowed ? "yes" : "no") + "\n" + grants.join("\t"), reply);
   }
   return { reply, answer: textOf(res) };
 }
@@ -64,7 +82,7 @@ async function askFirst(model, reply) {
 async function ask(reply) {
   const { ai, model } = models.get();
   if (P.mode_asks_at(chatMode.get())) return askFirst(model, reply);
-  return { reply, answer: textOf(await post(`/api/chat/${ai}/${model}`, conversation())) };
+  return { reply, answer: textOf(await streamed(`/api/chat/${ai}/${model}`, conversation(), reply)) };
 }
 
 const start = createStart(document.querySelector(".page"), $("composer"));
