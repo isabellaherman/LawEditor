@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script type="module" src="./main.js"></script>
 <script type="module" src="./chat.js"></script>
+<script type="module" src="./debug.js"></script>
 </head>
 <body class="desk">
 <div class="window" id="win" data-agent="lg">
@@ -19,6 +20,7 @@
     </div>
     <button class="btn btn--ghost" data-view="chat" aria-current="page" title="Chat"><svg class="icon"><use href="#i-text"/></svg><span class="side__text">Chat</span></button>
     <button class="btn btn--ghost" data-view="doc" title="Laws"><svg class="icon"><use href="#i-shield"/></svg><span class="side__text">Laws</span></button>
+    <button class="btn btn--ghost" data-view="debug" title="Debug"><svg class="icon"><use href="#i-code"/></svg><span class="side__text">Debug</span></button>
   </aside>
 
   <div class="window__main">
@@ -91,6 +93,22 @@
             <span class="tag"><svg class="icon icon--sm"><use href="#i-lock"/></svg>Read only</span>
           </div>
           <article class="prose" id="agent-md"></article>
+        </div>
+      </section>
+
+      <!-- Debug (to remove later): LawEditor's own LAWS.bend as it is, and Bend's check of it, run when opened. -->
+      <section class="view" id="view-debug" hidden>
+        <div class="doc">
+          <div class="doc__head">
+            <span class="meta mono">LAWS.bend</span>
+            <span class="tag"><svg class="icon icon--sm"><use href="#i-lock"/></svg>LawEditor · debug</span>
+          </div>
+          <article class="prose"><pre><code id="debug-laws"></code></pre></article>
+          <div class="doc__head doc__sub">
+            <span class="meta mono">bend PROOF.bend</span>
+            <span class="tag" id="debug-when"></span>
+          </div>
+          <article class="prose"><pre><code id="debug-check"></code></pre></article>
         </div>
       </section>
 

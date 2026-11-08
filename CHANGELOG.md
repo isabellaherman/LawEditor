@@ -13,6 +13,10 @@ What the person asked for, as goals. Each one becomes an iteration when it's pic
 - Codex's answer comes without its own notice ("Reading additional input from stdin...").
 - When a project is done, the chat shows a link that opens its folder on the computer.
 
+## 0.1.5 (2026-11-08)
+
+- **Debug screen** (side bar › Debug, to remove later): LawEditor's own `LAWS.bend`, exactly as the file is, and the output of `bend PROOF.bend`, run by the server each time the screen opens (`GET /api/debug/LAWS.bend`, `GET /api/debug/check`). Nothing on it is typed by hand: a law added, changed or removed shows there as it is, and a law that fails shows Bend's own error.
+
 ## 0.1.4 (2026-11-07)
 
 - **The chat offers the mode** (`OFFER.bend`, flow A of the four drawn on 2026-11-07). In Only read, when the person wants something built, the chat ends its reply with `MODE: "Ask before changes"`; the page asks Switch / Stay. Switch moves the picker and sends the request again; in Ask before changes the chat writes the smallest version to play first, says how to open it, and asks one question. Stay keeps Only read.

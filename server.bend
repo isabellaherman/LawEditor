@@ -211,6 +211,20 @@ def chat_md(+agent_md: String) -> String:
 def hear_md(+agent_md: String) -> String:
   String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ "HEAR.md"
 
+# Debug: LawEditor's own files live there too (LAWS.bend, PROOF.bend). The page shows them as they are.
+def editor_file(+agent_md: String, name: String) -> String:
+  String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ name
+
+def debug_check.out(r: U32 & String) -> String:
+  (code, out) = r
+  ok_text(out)
+
+# GET /api/debug/check: Bend checks LawEditor's own laws now; its output, exactly as Bend prints it.
+def debug_check(+agent_md: String) -> IO(String):
+  do IO<String>:
+    r : U32 & String <- run("bend", [editor_file(agent_md, "PROOF.bend")], 120000)
+    return debug_check.out(r)
+
 # HARNESS.md, what the chat may do and when it asks (POLICY.bend), lives there too.
 def harness_md(+agent_md: String) -> String:
   String.reverse(String.drop(String.reverse(agent_md), String.length("AGENT.md"))) ++ "HARNESS.md"
@@ -462,8 +476,23 @@ def route_get.progress(is_progress: Bool, +path: String, dist: String, agent_md:
     case False{}:
       route_get.models(String.starts_with(path, "/api/models/"), path, dist, agent_md)
 
-def route_get(+path: String, dist: String, agent_md: String) -> IO(String):
-  route_get.progress(String.starts_with(path, "/api/progress/"), path, dist, agent_md)
+# Debug (a screen to remove later): GET /api/debug/LAWS.bend and /api/debug/check.
+def route_get.debug_laws(is_laws: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
+  match is_laws:
+    case True{}:
+      route_agent_md(editor_file(agent_md, "LAWS.bend"))
+    case False{}:
+      route_get.progress(String.starts_with(path, "/api/progress/"), path, dist, agent_md)
+
+def route_get.debug(is_check: Bool, +path: String, dist: String, +agent_md: String) -> IO(String):
+  match is_check:
+    case True{}:
+      debug_check(agent_md)
+    case False{}:
+      route_get.debug_laws(String.eq(path, "/api/debug/LAWS.bend"), path, dist, agent_md)
+
+def route_get(+path: String, dist: String, +agent_md: String) -> IO(String):
+  route_get.debug(String.eq(path, "/api/debug/check"), path, dist, agent_md)
 
 # POST: /api/generate/<ai> (body: the sentence), /api/chat/<ai>/<model> (body: the conversation),
 # /api/file/<name> (body: the file).
