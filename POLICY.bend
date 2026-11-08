@@ -96,7 +96,7 @@ def can_ask(codex: Bool) -> Bool:
 def mode_told(m: Mode) -> String:
   match m:
     case Mode.OnlyRead{}:
-      "Only read. You may read the files. Never edit or create a file, and run no command."
+      "Only read. You may read the files. Never edit or create a file, and run no command. If they ask you to build or change something, say you can do it once they pick Ask before changes under the message field; never say it isn't your job."
     case Mode.AskBeforeChanges{}:
       "Ask before changes. You may read the files. When the person asks for a change, make it with your tools; if it needs their yes, you are stopped and they are asked. Never change LAWS.bend."
     case Mode.ChangeFreely{}:
@@ -104,6 +104,10 @@ def mode_told(m: Mode) -> String:
 
 def mode_section(m: Mode) -> String:
   "## Mode\n\n" ++ mode_told(m)
+
+# Claude runs the chat in --safe-mode: none of the person's own Claude Code setup (their CLAUDE.md, plugins,
+# hooks, memory) reaches the chat, and it starts in about half the time. It is told only what this app tells it.
+def claude_isolation() -> String: "--safe-mode"
 
 # What the chat may never do, in any mode: change the project's laws (Claude's --disallowedTools; a deny wins).
 def never() -> List<&2, String>:

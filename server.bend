@@ -211,9 +211,9 @@ def chat_args.pick(is_codex: Bool, has_model: Bool, model: String, prompt: Strin
     case True{} False{}:
       ["exec", "--sandbox", Policy.codex_sandbox(Policy.chat()), prompt]
     case False{} True{}:
-      ["-p", prompt, "--model", model, "--allowedTools", Policy.claude_tools(Policy.chat())]
+      ["-p", prompt, Policy.claude_isolation(), "--model", model, "--allowedTools", Policy.claude_tools(Policy.chat())]
     case False{} False{}:
-      ["-p", prompt, "--allowedTools", Policy.claude_tools(Policy.chat())]
+      ["-p", prompt, Policy.claude_isolation(), "--allowedTools", Policy.claude_tools(Policy.chat())]
 
 def chat_args(+ai: String, +model: String, prompt: String) -> List<String>:
   chat_args.pick(String.eq(ai, "codex"), Bool.not(String.is_empty(model)), model, prompt)
@@ -273,7 +273,7 @@ def ask_args.model(has_model: Bool, model: String, rest: List<String>) -> List<S
       rest
 
 def ask_args(+model: String, grants: String, +session: String, prompt: String) -> List<String>:
-  "-p" <> prompt <> ask_args.model(Bool.not(String.is_empty(model)), model,
+  "-p" <> prompt <> Policy.claude_isolation() <> ask_args.model(Bool.not(String.is_empty(model)), model,
     "--allowedTools" <> Policy.claude_tools(Policy.chat()) <> with_each(grants.of(String.split(grants, '\t')),
     "--disallowedTools" <> with_each(Policy.never(), ask_args.tail(Bool.not(String.is_empty(session)), session))))
 

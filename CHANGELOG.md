@@ -2,6 +2,22 @@
 
 Versions stay at 0.x until the MVP. Each iteration raises the last digit.
 
+## Next
+
+What the person asked for, as goals. Each one becomes an iteration when it's picked.
+
+- The chat shows its answer while it writes it, as Claude does.
+- The chat answers fast.
+- The game the chat builds follows the laws: Bend checks the game itself, not only `TYPES.bend`.
+- The chat proposes only sentences that are rules.
+- Codex asks before changes too.
+
+## 0.1.2 (2026-11-07)
+
+- **The chat builds, and says how.** `CHAT.md` says the chat helps build the project as far as its mode allows, and hears its rules. In Only read, asked to build or change something, it says it can once the person picks Ask before changes (as Claude Code does when a mode blocks it), never that it isn't its job. Tested: "cria um jogo da velha que é impossivel perder e tem grafico de gameboy" in Only read now answers "Posso criar o jogo quando você escolher Ask before changes".
+- **The chat runs apart from the person's own Claude Code** (`--safe-mode`, `Policy.claude_isolation`): their CLAUDE.md, plugins, hooks and memory don't reach it, and it starts in about half the time (a bare "oi": about 5.4 s before, 2.4 s now). Asking, Allow and the LAWS.bend refusal work the same.
+- Not the cause: the person's connectors (Gmail, Drive…) never load in the chat.
+
 ## 0.1.1 (2026-11-07)
 
 - **Fix: Allow didn't let the chat write a file.** Two causes, both in `ASK.bend`. (1) A new or rewritten file comes from Claude's Write tool, and the app allowed it as `Write(//path)`; Claude doesn't take that rule, so Write stayed refused. Claude's file rules are all `Edit(…)`, which covers Write: the grant is now always `Edit(//path)`. (2) Claude's refusal tells it "don't retry, it will be refused for the rest of this session"; told only "Go ahead", it gave up after a few tries. The resume now says what was allowed and that the earlier refusal no longer applies. Tested in the app: "Create a new file TEST.md", Allow, the file is written. The question for Write says "write", not "create" (it may be an existing file).
