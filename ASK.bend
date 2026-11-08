@@ -101,11 +101,12 @@ def target(+t: String, +inp: String) -> String:
   target.of(inp, is_file_tool(t))
 
 # The one action the person allows, as a Claude rule: Edit(//abs/path), Bash(exact command), or the tool.
-# (In Claude's rules, //path is a path from the root of the disk.)
+# (In Claude's rules, //path is a path from the root of the disk.) A file rule is always Edit: Claude's Edit
+# rules cover every tool that changes a file, Write included; a Write(…) rule doesn't let Write run.
 def grant.of(+t: String, +what: String, file: Bool, bash: Bool) -> String:
   match file bash:
     case True{} _:
-      t ++ "(/" ++ what ++ ")"
+      "Edit(/" ++ what ++ ")"
     case False{} True{}:
       "Bash(" ++ what ++ ")"
     case False{} False{}:
@@ -120,7 +121,7 @@ def question.of(+t: String, +what: String, edit: Bool, write: Bool, bash: Bool) 
     case True{} _ _:
       "Allow the chat to edit " ++ base_name(what) ++ "?"
     case False{} True{} _:
-      "Allow the chat to create " ++ base_name(what) ++ "?"
+      "Allow the chat to write " ++ base_name(what) ++ "?"
     case False{} False{} True{}:
       "Allow the chat to run this command?"
     case False{} False{} False{}:
@@ -174,10 +175,11 @@ def allows(+a: U32) -> Bool:
 def keeps(+a: U32) -> Bool:
   U32.is_eq(a, 1)
 
-# What the chat is told when its session resumes.
-def told(allowed: Bool) -> String:
+# What the chat is told when its session resumes. Claude's denial said "don't retry, it will be denied
+# for the rest of this session"; once allowed, it must hear that this changed, or it won't try again.
+def told(allowed: Bool, +grants: String) -> String:
   match allowed:
     case True{}:
-      "The person allowed it. Go ahead."
+      "The person allowed it: you now have permission for " ++ String.join(String.split(grants, '\t'), ", ") ++ ". The earlier denial no longer applies. Try that action again."
     case False{}:
       "The person did not allow it. Don't do it; answer them without it."

@@ -292,7 +292,7 @@ def ask(+model: String, +agent_md: String, +body: String) -> IO(String):
 # POST /api/allow/<model>, body "<session>\n<yes or no>\n<grants, by tab>": the person answered; the session goes on.
 def allow(+model: String, +body: String) -> IO(String):
   do IO<String>:
-    agent : U32 & String <- run("claude", ask_args(model, nth(String.split(body, '\n'), 2n), nth(String.split(body, '\n'), 0n), Ask.told(String.eq(nth(String.split(body, '\n'), 1n), "yes"))), 600000)
+    agent : U32 & String <- run("claude", ask_args(model, nth(String.split(body, '\n'), 2n), nth(String.split(body, '\n'), 0n), Ask.told(String.eq(nth(String.split(body, '\n'), 1n), "yes"), nth(String.split(body, '\n'), 2n))), 600000)
     return ask_reply(agent)
 
 # The models an AI offers, asked to its own CLI (MODELS.bend reads the answer). Only claude and codex.
