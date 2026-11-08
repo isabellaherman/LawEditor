@@ -92,3 +92,21 @@ def Laws.flow_skill_then_system():
 
 def Laws.flow_writes_need_you():
   {==}
+
+def Laws.offer_flow_is_whole():
+  {==}
+
+def Laws.offer_flow_skill_then_system():
+  {==}
+
+def Laws.offer_flow_writes_need_you():
+  {==}
+
+def Laws.stay_keeps_only_read():
+  {==}
+
+def Laws.switch_asks_first():
+  {==}
+
+def Laws.reply_hides_offer():
+  {==}

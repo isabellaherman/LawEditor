@@ -5,6 +5,8 @@ import H from "../HEAR.bend";
 import E from "../EDITOR.bend";
 import A from "../ASK.bend";
 import P from "../POLICY.bend";
+import O from "../OFFER.bend";
+import { mountDiagram } from "bend-ui/diagram";
 import { createMessages } from "./chat/messages.js";
 import { createFace } from "./chat/face.js";
 import { createModels } from "./chat/models.js";
@@ -42,7 +44,7 @@ async function streamed(path, body, reply) {
     while (!done) {
       await sleep(300);
       if (done) break;
-      try { const text = await (await fetch(`/api/progress/${id}`)).text(); if (!done && text.trim()) reply.live(H.words(text)); } catch {}
+      try { const text = await (await fetch(`/api/progress/${id}`)).text(); if (!done && text.trim()) reply.live(O.words(H.words(text))); } catch {}
     }
   })();
   const res = await post(`${path}/${id}`, body);
@@ -60,8 +62,8 @@ const ASK_ANSWERS = [
   { label: "Always allow", value: A.always(), kind: "" },
   { label: "Allow", value: A.allow(), kind: "btn--primary" },
 ];
-async function askFirst(model, reply) {
-  let res = await streamed(`/api/ask/${model}`, always.join("\t") + "\n" + conversation(), reply);
+async function askFirst(model, reply, extra) {
+  let res = await streamed(`/api/ask/${model}`, always.join("\t") + "\n" + conversation() + extra, reply);
   while (res.startsWith("ask\n")) {
     const [, session, grant, question, ...preview] = res.split("\n");
     reply.el.remove();   // the card takes the reply's place; the answer comes after it
@@ -79,10 +81,37 @@ async function askFirst(model, reply) {
   return { reply, answer: textOf(res) };
 }
 
-async function ask(reply) {
+// extra: a line for the chat after the conversation (after Switch, OFFER.told()).
+async function ask(reply, extra = "") {
   const { ai, model } = models.get();
-  if (P.mode_asks_at(chatMode.get())) return askFirst(model, reply);
-  return { reply, answer: textOf(await streamed(`/api/chat/${ai}/${model}`, conversation(), reply)) };
+  if (P.mode_asks_at(chatMode.get())) return askFirst(model, reply, extra);
+  return { reply, answer: textOf(await streamed(`/api/chat/${ai}/${model}`, conversation() + extra, reply)) };
+}
+// What the person reads: the reply without its LAW: and MODE: lines (HEAR.bend, OFFER.bend).
+const shown = (text) => O.words(H.words(text));
+
+// The chat offers the mode (OFFER.bend): in Only read, a MODE: line becomes Switch / Stay.
+// Switch moves the picker and sends the request again, now in Ask before changes; Stay changes nothing.
+const OFFER_ANSWERS = [
+  { label: "Stay", value: O.stay(), kind: "btn--ghost" },
+  { label: "Switch", value: O.switch(), kind: "btn--primary" },
+];
+async function offer(answer) {
+  if (!O.offers(answer)) return;
+  composer.hold(true);   // the talk stops until the person answers (as every question)
+  const card = messages.proposal("Switch to Ask before changes?", OFFER_ANSWERS, "So the chat can build it. It asks before each change.", "dot dot--warn");
+  const choice = await card.ask();
+  chatMode.set(O.mode_after(choice));
+  card.set(O.switches(choice) ? "dot dot--ok" : "dot", O.switches(choice) ? "Switched to Ask before changes." : "Stayed in Only read.");
+  composer.hold(false);
+  if (!O.switches(choice)) return;
+  const first = messages.theirs();
+  face.to(first.slot); face.lookAt(first.el);
+  const { reply, answer: built } = await ask(first, "\n" + O.told());
+  said.push({ who: C.agent(), text: built });
+  await reply.write(shown(built));
+  face.lookAt(null);
+  hear(built);
 }
 
 const start = createStart(document.querySelector(".page"), $("composer"));
@@ -96,9 +125,10 @@ const composer = createComposer($("composer"), async (text) => {
   face.to(first.slot, from ?? undefined); face.lookAt(first.el);
   const { reply, answer } = await ask(first);
   said.push({ who: C.agent(), text: answer });
-  await reply.write(H.words(answer));
+  await reply.write(shown(answer));
   face.lookAt(null);
   hear(answer);   // not awaited: the person can keep talking while a proposal waits
+  offer(answer);
 });
 
 // The skill (HEAR.md) asked the chat to end its reply with LAW: "<sentence>" lines.
@@ -160,6 +190,16 @@ document.querySelectorAll("#side [data-view]").forEach((b) => b.addEventListener
   inChat = b.dataset.view === "chat"; show();
   if (inChat && chatView === "chat") composer.focus();
 }));
+// Chat › Context: the offer flow, drawn from OFFER.flow() by Bend-UI's diagram (the code is the source).
+{
+  const items = (l) => { const out = []; while (l.$ === "Con") { out.push(l.head); l = l.tail; } return out; };
+  const TONE = { Person: "", Skill: "accent", System: "law" };
+  const steps = items(O.flow());
+  mountDiagram($("offer-flow"), {
+    nodes: steps.map((s) => ({ label: s.name, tone: TONE[s.who.$], tag: s.writes ? "writes a file" : "" })),
+    edges: steps.flatMap((s, i) => items(s.next).map((g) => ({ from: i, to: Number(g.to), label: g.label }))),
+  });
+}
 fetch("/api/file/HARNESS.md").then((r) => r.text()).then((md) => { $("harness-md").textContent = md || "HARNESS.md not found"; }).catch(() => {});
 fetch("/api/file/HEAR.md").then((r) => r.text()).then((md) => { $("hear-md").innerHTML = markdown(md || "# HEAR.md not found"); }).catch(() => {});
 fetch("/api/file/CHAT.md").then((r) => r.text()).then((md) => { $("chat-md").innerHTML = markdown(md || "# CHAT.md not found"); $("chat-md").querySelectorAll("pre").forEach(highlight); }).catch(() => {});

@@ -80,6 +80,7 @@ The selector shows the sentences alone, with their laws, or side by side. Two bu
 | `HEAR.bend` | The chat hears rules: reads its `LAW:` lines, and when to ask (Add / Always add / Don't add) |
 | `MODELS.bend` | Reads the models each AI's CLI offers |
 | `ASK.bend` | The chat asks before it acts: reads what Claude was refused and makes the question; the person's answers |
+| `OFFER.bend` | The chat offers the mode: in Only read, a request to build becomes Switch / Stay; its flow is drawn in Chat › Context |
 | `FLOW.bend` | How a flow is written: its steps, who acts in each, where each goes |
 | `POLICY.bend` | The tools (and what each does: changes a file, runs a command), the two agents, the chat's modes, and the tools each is given; each CLI's flags come from it |
 | `LAWS.bend` / `PROOF.bend` | The editor's own rules and their proofs (`bun run check`) |

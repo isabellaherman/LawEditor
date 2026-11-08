@@ -96,9 +96,9 @@ def can_ask(codex: Bool) -> Bool:
 def mode_told(m: Mode) -> String:
   match m:
     case Mode.OnlyRead{}:
-      "Only read. You may read the files. Never edit or create a file, and run no command. If they ask you to build or change something, say you can do it once they pick Ask before changes under the message field; never say it isn't your job."
+      "Only read. You may read the files. Never edit or create a file, and run no command. When they want something built or changed (also when they just say they want a game or an app, like \"I want a platform game\"), don't refuse and don't build: say in one short sentence that you can build it in Ask before changes, and end your reply with this line, exactly: MODE: \"Ask before changes\" (the app asks them to switch; never say it isn't your job)."
     case Mode.AskBeforeChanges{}:
-      "Ask before changes. You may read the files. When the person asks for a change, make it with your tools; if it needs their yes, you are stopped and they are asked. Never change LAWS.bend."
+      "Ask before changes. You may read the files. When the person asks for a change, make it with your tools; if it needs their yes, you are stopped and they are asked. When they ask for a game or an app, first write the smallest version they can play or use, then say how to open it and ask one question. Never change LAWS.bend."
     case Mode.ChangeFreely{}:
       "Change freely. You may read, edit and create files. Never change LAWS.bend."
 

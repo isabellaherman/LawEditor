@@ -7,6 +7,7 @@ import ./POLICY.bend as P
 import ./HEAR.bend as H
 import ./CHAT.bend as C
 import ./FLOW.bend as F
+import ./OFFER.bend as O
 
 # LAW: a title never gets a state.
 law title_stays_title:
@@ -135,3 +136,29 @@ law flow_skill_then_system:
 # LAW: from what the chat hears, no path writes a file without passing through you.
 law flow_writes_need_you:
   {F.unguarded(64n, H.flow(), [1n]) == False{} : Bool}
+
+# ---------- The chat offers the mode (OFFER.flow, drawn as the diagram) ----------
+
+# LAW: every arrow of the offer flow goes to one of its steps.
+law offer_flow_is_whole:
+  {F.well_formed(O.flow()) == True{} : Bool}
+
+# LAW: after the chat offers the mode, Bend acts: no skill step goes on unchecked.
+law offer_flow_skill_then_system:
+  {F.skill_then_system(O.flow()) == True{} : Bool}
+
+# LAW: from the chat's offer, no path writes a file without passing through you.
+law offer_flow_writes_need_you:
+  {F.unguarded(64n, O.flow(), [1n]) == False{} : Bool}
+
+# LAW: Stay keeps the chat in the mode it starts in (Only read).
+law stay_keeps_only_read:
+  {O.mode_after(O.stay()) == P.chat_mode_index() : U32}
+
+# LAW: Switch moves to a mode that asks before each change, never to one that changes freely.
+law switch_asks_first:
+  {P.mode_asks_at(O.mode_after(O.switch())) == True{} : Bool}
+
+# LAW: the chat's MODE: line is for the page; the person doesn't read it.
+law reply_hides_offer:
+  {O.words("I can build it.\nMODE: \"Ask before changes\"") == "I can build it." : String}

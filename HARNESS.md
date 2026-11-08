@@ -15,6 +15,12 @@ The person picks one under the message field. It starts on "Only read".
 | Run commands          | No        | Asks               | Asks          |
 | Change LAWS.bend      | Never     | Never              | Never         |
 
+## When it offers the mode
+
+In Only read, when the person wants something built, the chat doesn't refuse: it offers
+Ask before changes (OFFER.bend). Switch moves the picker and sends the request again;
+Stay changes nothing. The flow is drawn in Chat › Context, from OFFER.flow().
+
 ## When it asks
 
 The chat tries; what its mode doesn't allow is refused, and it says what it wanted.

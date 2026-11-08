@@ -27,5 +27,6 @@ export function createMode(dd, aiDd, firstAi) {
     draw();
   });
   draw();
-  return { get: () => mode };
+  // set: the offer's Switch (OFFER.bend) moves the picker, as if the person had picked it.
+  return { get: () => mode, set(i) { if (P.mode_can_pick(i, codex)) { mode = Number(i); draw(); } } };
 }

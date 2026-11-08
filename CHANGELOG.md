@@ -13,6 +13,25 @@ What the person asked for, as goals. Each one becomes an iteration when it's pic
 - Codex's answer comes without its own notice ("Reading additional input from stdin...").
 - When a project is done, the chat shows a link that opens its folder on the computer.
 
+## 0.1.4 (2026-11-07)
+
+- **The chat offers the mode** (`OFFER.bend`, flow A of the four drawn on 2026-11-07). In Only read, when the person wants something built, the chat ends its reply with `MODE: "Ask before changes"`; the page asks Switch / Stay. Switch moves the picker and sends the request again; in Ask before changes the chat writes the smallest version to play first, says how to open it, and asks one question. Stay keeps Only read.
+- **The flow is the source, and it is checked.** `OFFER.flow()` is drawn in Chat › Context by Bend-UI's diagram. New laws (`LAWS.bend`, proved in `PROOF.bend`): `offer_flow_is_whole`, `offer_flow_skill_then_system`, `offer_flow_writes_need_you`, `stay_keeps_only_read`, `switch_asks_first`, `reply_hides_offer`.
+- **Validated in the app against the diagram**, "quero um jogo de plataforma so andar pro lado":
+
+  | Step | Seen |
+  |---|---|
+  | You ask for something to be built | Sent in Only read |
+  | The chat ends its reply with MODE: | Yes, with a rule (first try missed it: "I want a game" read as a description; the Only read text now says wanting a game means building it) |
+  | Switch to Ask before changes? | Card shown, talk stopped |
+  | The picker moves; the request goes again | Picker on Ask before changes; a new reply started |
+  | The chat writes the smallest version | `plataforma.html` (canvas, arrows or A/D) |
+  | Claude refused, question | Allow card with the file |
+  | Write it; how to open it; one question | Written; "clique duplo nele"; one question about the screen edge |
+  | Stay, Don't allow | Not clicked in this run (Stay is proved by `stay_keeps_only_read`) |
+
+- **Known:** the Allow card shows the whole file, so a game makes it long. The offer card and a rule card can wait at the same time, and answering one frees the message field. The first answer took about 30 s (the chat reads the project first).
+
 ## 0.1.3 (2026-11-07)
 
 - **The chat shows its answer while it writes it** (Claude). Claude runs with `--include-partial-messages` and its output goes to a file for the turn (`/tmp/laweditor-turn-<id>.jsonl`; the id keeps only letters and digits). The page asks `GET /api/progress/<id>` every 300 ms and draws the text so far; `ASK.bend` reads it (the message being written now). Codex still answers all at once. Measured: the first words show about 3 s after sending, instead of the whole answer at the end.
