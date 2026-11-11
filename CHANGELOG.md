@@ -13,6 +13,12 @@ What the person asked for, as goals. Each one becomes an iteration when it's pic
 - Codex's answer comes without its own notice ("Reading additional input from stdin...").
 - When a project is done, the chat shows a link that opens its folder on the computer.
 
+## 0.1.6 (2026-11-11)
+
+- **The chat proposes laws again, also the ones nobody said.** Since 0.1.4 each mode told the chat what to do with a request to build, and the chat did that and dropped its LAW: lines. Now every mode carries one more line, `Policy.still_hears()`, added in `mode_section` so no mode can leave it out; the Switch message (`OFFER.told()`) says it too.
+- **Where the rules are** (`HEAR.md`): most rules are never said. The chat looks in what the person says, in what their words take for granted ("a top-down shooter": the player moves in four directions), and in what it decided while building (one shot kills an enemy). Each becomes a proposal: Add, Always add or Don't add. At most five per reply, the most important first. `HEAR.flow()` names the step that way.
+- **Tested** with "quero um top down shooter", which states no rule: Only read proposed 3 laws, Ask before changes 5 laws of the game it planned. A rule added from the chat got its law from the law agent, and Bend accepted it.
+
 ## 0.1.5 (2026-11-08)
 
 - **Debug screen** (side bar › Debug, to remove later): LawEditor's own `LAWS.bend`, exactly as the file is, and the output of `bend PROOF.bend`, run by the server each time the screen opens (`GET /api/debug/LAWS.bend`, `GET /api/debug/check`). Nothing on it is typed by hand: a law added, changed or removed shows there as it is, and a law that fails shows Bend's own error.

@@ -158,7 +158,7 @@ def mode_to(mode: U32) -> Nat:
 def flow() -> List<&2, F.Step>:
   [
     F.Step{"You talk", F.Person{}, False{}, [F.Go{1n, ""}]},
-    F.Step{"The chat hears a rule and ends its reply with LAW: lines", F.Skill{}, False{}, [F.Go{2n, ""}]},
+    F.Step{"The chat hears the rules, said or taken for granted, and the ones it chose while building; it ends its reply with LAW: lines", F.Skill{}, False{}, [F.Go{2n, ""}]},
     F.Step{"Read the LAW: lines", F.System{}, False{}, [F.Go{3n, "new"}, F.Go{8n, "already in the document"}]},
     F.Step{"Ask, or add?", F.System{}, False{}, [F.Go{mode_to(asking()), "asking (every session starts here)"}, F.Go{mode_to(adding()), "after Always add"}]},
     F.Step{"Add, Always add or Don't add: the talk stops until you answer", F.Person{}, False{}, [F.Go{answer_to(add()), "Add"}, F.Go{answer_to(always()), "Always add"}, F.Go{answer_to(dont()), "Don't add"}]},

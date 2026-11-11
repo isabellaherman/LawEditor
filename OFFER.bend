@@ -66,7 +66,7 @@ def mode_after(+a: U32) -> U32:
 
 # What the chat is told when the request goes again, after Switch.
 def told() -> String:
-  "The person switched to Ask before changes. Build what they asked now: first the smallest version they can play or use, then say how to open it and ask one question."
+  "The person switched to Ask before changes. Build what they asked now: first the smallest version they can play or use, then say how to open it and ask one question. Still end with the LAW: lines of the rules in it, the ones they said and the ones you chose."
 
 # ---------- The flow (FLOW.bend), drawn as the diagram ----------
 # The question's arrows come from switches above: change the code and the diagram changes with it.

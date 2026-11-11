@@ -102,8 +102,14 @@ def mode_told(m: Mode) -> String:
     case Mode.ChangeFreely{}:
       "Change freely. You may read, edit and create files. Never change LAWS.bend."
 
+# Every mode keeps hearing rules (HEAR.md). A mode tells the chat what to do when the person asks for
+# something; without this line the chat follows that and forgets the LAW: lines. It is added to every
+# mode here, once, so no mode can leave it out.
+def still_hears() -> String:
+  "Whatever this mode lets you do, still hear the rules, said, taken for granted, or chosen by you while building, as the skill below says: end your last message with their LAW: lines, after any MODE: line."
+
 def mode_section(m: Mode) -> String:
-  "## Mode\n\n" ++ mode_told(m)
+  "## Mode\n\n" ++ mode_told(m) ++ "\n\n" ++ still_hears()
 
 # Claude runs the chat in --safe-mode: none of the person's own Claude Code setup (their CLAUDE.md, plugins,
 # hooks, memory) reaches the chat, and it starts in about half the time. It is told only what this app tells it.
