@@ -12,6 +12,16 @@ type Who is Data:
   Skill{}
   System{}
 
+# What each kind of actor is. The diagrams' legend is drawn from this.
+def who_means(w: Who) -> String:
+  match w:
+    case Person{}:
+      "Person: you act. You talk or answer a question"
+    case Skill{}:
+      "Skill: a model acts, from a prompt. It proposes and can be wrong"
+    case System{}:
+      "System: Bend acts. It decides, and laws prove what it does"
+
 # An arrow to another step (by its place in the flow), with what makes it go there.
 type Go is Data:
   Go{to: Nat, label: String}

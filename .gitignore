@@ -4,3 +4,4 @@ project/
 *.mjs
 .DS_Store
 bun.lock
+.borzoi/

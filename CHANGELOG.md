@@ -13,6 +13,12 @@ What the person asked for, as goals. Each one becomes an iteration when it's pic
 - Codex's answer comes without its own notice ("Reading additional input from stdin...").
 - When a project is done, the chat shows a link that opens its folder on the computer.
 
+## 0.1.7 (2026-11-12)
+
+- **The harness, drawn from its own code.** `ARCH.bend` is the harness as it is today, as a `FLOW.bend` flow (who acts where); the words for modes, flags and tools are read from `POLICY.bend`, so they follow the code. `DIAGRAMS.bend` turns `HEAR.flow()`, `OFFER.flow()` and `ARCH.flow()` into Mermaid text (`bend DIAGRAMS.bend` prints them; with a URL it sends the ones that changed, from a clean commit only). Each diagram's top node names the commit it came from.
+- **A legend for who acts** (`FLOW.who_means`): Person, Skill and System each say what they are, and the diagrams draw their legend from it.
+- **Known:** unstable, with bugs not yet listed. This version saves the state as it is before the next round of fixes.
+
 ## 0.1.6 (2026-11-11)
 
 - **The chat proposes laws again, also the ones nobody said.** Since 0.1.4 each mode told the chat what to do with a request to build, and the chat did that and dropped its LAW: lines. Now every mode carries one more line, `Policy.still_hears()`, added in `mode_section` so no mode can leave it out; the Switch message (`OFFER.told()`) says it too.
