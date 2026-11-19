@@ -40,11 +40,25 @@ def check_sh() -> String:
 def check(+dir: String) -> IO(String):
   Sys.sh(check_sh(), [dir], 120000)
 
-# ---------- The page ----------
-# $0 the project's folder, $1 where the bundle goes, inside it. ok: the page's file. warn: the same, with why.
-# error: the file, then what Bend said.
-def page_sh() -> String:
-  "cd \"$0\" || exit 0; [ -f index.html ] || exit 0; rm -rf \"$1\"; if out=$(bend index.html -o \"$1\" 2>&1); then if find . -type f \\( -name '*.html' -o -name '*.js' -o -name '*.mjs' \\) -not -path '*/.*' -not -path '*/node_modules/*' -exec grep -lE \"[.]bend[\\\"']\" {} + 2>/dev/null | grep -q .; then printf 'ok\\nindex.html\\n'; else printf 'warn\\nThe page imports no .bend file: what it does is written outside Bend, and no law checks it.\\n'; fi; else printf 'error\\nindex.html\\n%s\\n' \"$out\"; fi"
+# ---------- The page's fixed pieces (harness/web) ----------
+# A page is written in Bend (harness/web/WEB.md): main.bend renders it with Web.bend, and LawEditor's own
+# shell runs it. $0 the project's folder, $1 harness/web. The vocabulary is kept where the chat reads it
+# (.laweditor/web) and, in a project whose Bend imports it, in the project itself, always LawEditor's
+# version: a Web.bend changed by hand is put back. Nothing is written in a project that doesn't use it.
+def web_sh() -> String:
+  "cd \"$0\" || exit 0; mkdir -p .laweditor/web && cp \"$1/Web.bend\" \"$1/WEB.md\" .laweditor/web/ 2>/dev/null; if grep -qsE '^import [.]/Web[.]bend' *.bend 2>/dev/null; then cp \"$1/Web.bend\" Web.bend; fi; true"
 
-def page(+dir: String) -> IO(String):
-  Sys.sh(page_sh(), [dir, Places.page_in()], 120000)
+def web(+dir: String, +shell: String) -> IO(String):
+  Sys.sh(web_sh(), [dir, shell], 5000)
+
+# ---------- The page ----------
+# $0 the project's folder, $1 where the bundle goes, inside it, $2 harness/web. ok: the page's file. warn: the
+# same, with why. error: the file, then what Bend said.
+# A main.bend that renders with Web.bend is the page: LawEditor's shell (index.html, app.js, driver.js) goes
+# to .laweditor/web and is bundled with it. Otherwise, a project's own index.html is bundled as before, and
+# said to be outside Bend when it imports no .bend file.
+def page_sh() -> String:
+  "cd \"$0\" || exit 0; if grep -qsE '^def render[(]' main.bend && grep -qsE '^import [.]/Web[.]bend' main.bend; then mkdir -p .laweditor/web && cp \"$2/index.html\" \"$2/app.js\" \"$2/driver.js\" \"$2/Web.bend\" .laweditor/web/ && cp \"$2/Web.bend\" Web.bend; rm -rf \"$1\"; if out=$(bend .laweditor/web/index.html -o \"$1\" 2>&1); then printf 'ok\\nmain.bend\\n'; else printf 'error\\nmain.bend\\n%s\\n' \"$out\"; fi; exit 0; fi; [ -f index.html ] || exit 0; rm -rf \"$1\"; if out=$(bend index.html -o \"$1\" 2>&1); then if find . -type f \\( -name '*.html' -o -name '*.js' -o -name '*.mjs' \\) -not -path '*/.*' -not -path '*/node_modules/*' -exec grep -lE \"[.]bend[\\\"']\" {} + 2>/dev/null | grep -q .; then printf 'ok\\nindex.html\\n'; else printf 'warn\\nThe page imports no .bend file: what it does is written outside Bend, and no law checks it.\\n'; fi; else printf 'error\\nindex.html\\n%s\\n' \"$out\"; fi"
+
+def page(+dir: String, +shell: String) -> IO(String):
+  Sys.sh(page_sh(), [dir, Places.page_in(), shell], 120000)

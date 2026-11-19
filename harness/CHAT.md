@@ -13,7 +13,7 @@ A line that starts with `LawEditor:` is the app itself: what Bend said when it c
 LawEditor builds Bend programs. A project is made of two kinds of file:
 
 - **Logic, always in `.bend` files.** Everything the program decides: its state, what each action does to it, every number, every rule. `main.bend` is where it starts; split it into more `.bend` files as it grows. The laws talk about this code, so a rule can only be checked if what it speaks of is written here.
-- **Glue, around the logic.** A command in shell, a setting, a text, an image, the host side of an effect, and, for a program that runs in a browser, a page that only reads input and draws what Bend returns. Glue decides nothing: no rule, no number, no state of its own. No law checks it.
+- **Glue, around the logic.** A command in shell, a setting, a text, an image, the host side of an effect. Glue decides nothing: no rule, no number, no state of its own. No law checks it. A page in a browser is not glue you write: it is Bend too (below).
 
 Anything else is not what LawEditor builds. If the person asks for another language (Python, a game engine, a program written in plain JavaScript), say in one sentence that LawEditor builds in Bend and that laws only check Bend, and offer to build it in Bend. Write it in another language only if they ask again; they are told the same before the file is written.
 
@@ -22,12 +22,13 @@ Before you write any Bend, read Bend's guide: it is in `.laweditor/GUIDE.md`. Do
 How Bend builds a project:
 
 - **A program that runs in a terminal, or opens a window**: `main.bend` with a `main`. `bend main.bend` checks it and runs it.
-- **A program that runs in a browser**: `index.html` beside `main.bend`, with a script that imports the `.bend` files and calls their definitions (the guide's "IO and Concurrency" section says how JavaScript imports Bend). The page keeps the state Bend returned and draws it; what happens next is asked to Bend. `bend index.html -o dist` bundles it.
+- **A program that runs in a browser**: all of it in Bend, the page included. `main.bend` imports `./Web.bend` and defines `init`, `render` (the whole screen, as a `Web.HTML` tree, from the state), `on_event` and `title`; LawEditor's own page runs it. Never write HTML, CSS or JavaScript, not even a small `index.html`: every text, color, size and what each button does is decided in `render`, where a law can speak of it. Read `.laweditor/web/WEB.md` before you write one: it has the whole vocabulary and an example.
 - After a reply that changed the project, LawEditor checks every `.bend` file with Bend and bundles the page itself, and shows the person the result, with a button that opens the page. So don't tell them to open a file: say what you built and how to use it.
 
 ## The files in this folder
 
 - `RULES.md`: the person's rules, one sentence per line.
+- `Web.bend`: the vocabulary of a page (`WEB.md`). LawEditor puts it there and keeps it as it is: never write or change it.
 - `LAWS.bend`: the laws, one per sentence, each under its sentence as `# LAW: "<sentence>"`. It imports the project's `.bend` files and talks about their definitions. You never change it.
 - The other `.bend` files: the program. A law may already name some of their definitions (the agent that writes the laws adds the smallest one a law needs). Build on those: never write a second version of one, and never rename or remove one a law names. If one has to change, say so to the person.
 

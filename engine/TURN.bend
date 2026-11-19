@@ -206,7 +206,7 @@ def built.page(broke: Bool, +w: Talk, +turn: String) -> IO(Bool):
       IO.pure(Bool, True{})
     case False{}:
       do IO<Bool>:
-        +out : String <- Build.page(dir(w))
+        +out : String <- Build.page(dir(w), Sys.told(cx(w), "web"))
         built.said(Build.ran(out), w, "page", turn, out)
 
 def built.at(acted: Bool, +w: Talk, +turn: String) -> IO(Bool):
@@ -215,6 +215,7 @@ def built.at(acted: Bool, +w: Talk, +turn: String) -> IO(Bool):
       IO.pure(Bool, False{})
     case True{}:
       do IO<Bool>:
+        placed : String <- Build.web(dir(w), Sys.told(cx(w), "web"))
         +out : String <- Build.check(dir(w))
         +broke : Bool <- built.said(Build.ran(out), w, "check", turn, out)
         built.page(broke, w, turn)
@@ -401,8 +402,11 @@ def calm(fuel: Nat, busy: Bool, +w: Talk) -> IO(Unit):
         calm(f, Ev.writing(log), w)
 
 # Bend's guide, as the installed bend prints it, where the chat can read it without asking (PLACES.guide).
+# Bend's guide, and how a page is written in Bend (harness/web/WEB.md, with Web.bend), where the chat reads them.
 def guide(+w: Talk) -> IO(String):
-  Sys.sh("bend guide > \"$0\" 2>/dev/null; true", [Places.guide(dir(w))], 20000)
+  do IO<String>:
+    placed : String <- Build.web(dir(w), Sys.told(cx(w), "web"))
+    Sys.sh("bend guide > \"$0\" 2>/dev/null; true", [Places.guide(dir(w))], 20000)
 
 def one(+w: Talk, extra: String) -> IO(Step):
   do IO<Step>:
