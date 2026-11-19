@@ -127,6 +127,27 @@ def run_out(r: Result<&1, &1, U32 & String, U32 & (String & String)>) -> U32 & S
     case Done{(code, (out, err))}:
       (code, out ++ err)
 
+# The same, but what it said on its errors is kept only when it failed: a CLI that tells its own progress
+# there (Codex prints its banner, the prompt and its log) answers with its words alone.
+def run_out.quiet.pick(+code: U32, +out: String, err: String) -> U32 & String:
+  (code, pick(U32.is_eq(code, 0), out, out ++ err))
+
+def run_out.quiet(r: Result<&1, &1, U32 & String, U32 & (String & String)>) -> U32 & String:
+  match r:
+    case Fail{(code, msg)}:
+      (127, msg)
+    case Done{(code, (out, err))}:
+      run_out.quiet.pick(code, out, err)
+
+def run_quiet(program: String, args: List<String>, timeout_ms: U32) -> IO(U32 & String):
+  do IO<U32 & String>:
+    r : Result<&1, &1, U32 & String, U32 & (String & String)> <- Process.run(program, args, "", 4194304, timeout_ms)
+    return run_out.quiet(r)
+
+# A program run in a folder, answering with what it printed (its errors only when it failed).
+def run_in_quiet(dir: String, program: String, args: List<String>, timeout_ms: U32) -> IO(U32 & String):
+  run_quiet("sh", "-c" <> "cd \"$0\" && exec \"$@\"" <> dir <> program <> args, timeout_ms)
+
 def run(program: String, args: List<String>, timeout_ms: U32) -> IO(U32 & String):
   do IO<U32 & String>:
     r : Result<&1, &1, U32 & String, U32 & (String & String)> <- Process.run(program, args, "", 4194304, timeout_ms)

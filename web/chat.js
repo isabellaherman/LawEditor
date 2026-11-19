@@ -59,6 +59,7 @@ let seen = 0, reader = 0, started = false;
 let now = { running: "", asking: "", project: "" };
 let reply = null, turn = "", streamed = "";       // the reply being drawn, its turn, its text so far
 let ui = null;                                    // the turn on the page: a reply and what comes of it, until the person speaks
+const asked = new Map();                          // turn -> its work, asked for ahead (read)
 const cards = new Map();                          // question -> what the turn keeps of it (a rule's row, an answer's line)
 let mineShown = 0;                                // messages of the person already drawn when they were sent
 
@@ -132,9 +133,12 @@ async function draw(line, old, later) {
   if (kind === "me") { ui = null; if (mineShown > 0) mineShown--; else messages.mine(f(0), [], old); }
   if (kind === "turn") { turn = f(0); streamed = ""; newReply(); }
   if (kind === "reply") {
-    const r = reply || newReply(), text = shown(f(1));
-    try { context(r.work(await get(conversation(`work/${f(0)}`)), f(0))); } catch {}   // its actions and every file changed
-    if (old) r.restore(text); else await r.write(text);
+    const r = reply || newReply(), text = shown(f(1)), me = reader;
+    try { context(r.work(await (asked.get(f(0)) || get(conversation(`work/${f(0)}`))), f(0))); } catch {}   // its actions and every file changed
+    asked.delete(f(0));
+    if (me !== reader) return;   // the person opened another conversation meanwhile: this one is no longer on the page
+    if (old) r.restore(text); else await r.write(text, () => me === reader);
+    if (me !== reader) return;
     face.lookAt(null); reply = null; turn = "";
   }
   if (kind === "fail" || kind === "stopped") {
@@ -169,12 +173,14 @@ async function read(old = false) {
   let text = ""; try { text = await get(conversation(`events/${seen}`)); } catch { return; }
   if (me !== reader) return;
   const lines = text.split("\n").filter(Boolean);
+  // Every reply's work is asked for at once, before any is drawn: drawn in order, they don't wait in a row.
+  for (const l of lines) if (l.startsWith("reply\t")) { const t = fields(l)[1]; if (!asked.has(t)) asked.set(t, get(conversation(`work/${t}`)).catch(() => "")); }
   for (const [i, line] of lines.entries()) {
     seen++;
     try { await draw(line, old, lines.slice(i + 1)); } catch (e) { console.error("An event could not be drawn:", e); }   // one event never stops the reading
     if (me !== reader) return;
   }
-  if (lines.length) { await sync(); if (!old) list.refresh(); }
+  if (lines.length) { await sync(); folderOn(); if (!old) list.refresh(); }
 }
 // While the chat answers: its work so far (ASK.bend reads the turn's file), and its words as it writes them.
 async function watch() {
@@ -240,8 +246,9 @@ function command(name) {
 }
 
 function reset() {
+  messages.hold(false);
   reader++; seen = 0; now = { running: "", asking: "", project: "" }; ui = null; composer.answered(); reply = null; turn = ""; streamed = ""; mineShown = 0;
-  cards.clear(); messages.clear(); meter.hidden = true;
+  cards.clear(); asked.clear(); messages.clear(); meter.hidden = true;
 }
 const toChat = () => document.querySelector('#side [data-view="chat"]').click();
 
@@ -257,8 +264,8 @@ function newConversation(into) {
 async function openConversation(k, id) {
   if (id === where.conv && seen) { toChat(); return; }   // back to it from Laws
   reset(); go(k, id);
-  await leaveStart(); toChat();
-  await read(true);
+  messages.hold(true);   // drawn out of sight, then shown at once at its end: no climbing down from the top
+  try { await leaveStart(); toChat(); await read(true); } finally { if (where.conv === id) messages.hold(false); }   // another one opened meanwhile: it shows itself
   place.lock(now.project || (rows.get(id) || ""));
   list.refresh(); follow();
 }
@@ -272,6 +279,12 @@ const list = createList($("history"), {
   onGone: () => newConversation(),
 });
 $("new-conversation").addEventListener("click", () => newConversation());
+// The project's folder, always in the same place on the bar (as the page is, beside it): on while the
+// conversation has a folder of its own, which it gets with its first message.
+const folderBtn = $("open-folder");
+const folderOn = () => { folderBtn.disabled = !(where.key || seen); };
+folderBtn.addEventListener("click", () => post(project("open")));
+document.addEventListener("laweditor:where", folderOn);
 // Another part of the page asks for a conversation (the compact view's line of state).
 document.addEventListener("laweditor:open", (e) => openConversation(e.detail.key, e.detail.conv));
 

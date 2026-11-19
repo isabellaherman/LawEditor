@@ -1,3 +1,28 @@
+# Next: a question when the server stops (found on 2026-11-19)
+
+Found while testing on Linux. Not built: what to do is below, smallest first.
+
+## Today
+
+A question that waits (a rule, the mode, an action) is held by the turn, inside the server. When the server stops, the turn is gone; when it starts again, `harness/EVENTS.bend` (`left`) answers every open question no, with the same note for all: "Not answered: LawEditor was closed while it waited." The person sees the question closed and doesn't know what to do. Waiting long is fine (no time limit): only a restart closes it.
+
+## Small (text and drawing only)
+
+- **A note for each kind of question**, saying what to do now:
+  - Rule: "Not answered: LawEditor was closed while it waited. You can still add it in Laws."
+  - Action: "The request was lost: LawEditor was closed while it waited. Ask again to run it."
+  - Mode: "Not answered: LawEditor was closed. You can switch the mode under the message box."
+- **A no answer doesn't flash green.** The answer's button turns green with a check for every answer (Bend-UI's `done()`, `.btn--async.is-done`), so Don't add and Don't allow look like yes for a moment. In the app: a no answer closes the question without `done()`. Better, in Bend-UI: a tone for `done()` with an x (neutral or warning, not danger: no is not an error). The owner's call.
+
+## Larger: a question that outlives the server
+
+What dies with the turn is not only the question but everything after it in `replied` (`engine/TURN.bend`): the next rules of the same reply, the mode offer, the laws to write, and the chat run again after a switch.
+
+- **A. The question on screen stays answerable.** On start, a rule's or mode's question stays open, marked as having no turn behind it; its answer is done by the server itself (`add_sentence`, `Law.write`, the mode's setting). To decide: whether such a question still holds the message box (`EVENTS.can_say`). The laws of `HEAR.bend` must still hold. An action's question can't be kept: the CLI that asked is gone.
+- **B. The turn resumes where it stopped.** The server reads the conversation again and does the rest of `replied`. A change at the heart of the engine.
+
+Worth it only if the server restarts often (an automatic update, say). In normal use a restart with a question open is rare, and a lost rule can be added in Laws.
+
 # Next: the artifact system (0.1.13)
 
 Written on 2026-11-19. The owner wants her own artifacts, taking Claude's apart: a page (HTML, no server), the agent's tools, skills, types, capabilities, and the shell around the page, where the comment picker lives. Her complaints split in two: what Claude does but differently each time (fits the screen, shows every parameter, options beside Today, values that come back), and what it lacks (a debug mode with the spacings, picking a part to read it). The artifact "Ferramentas do Artefato" has the whole map.
@@ -86,7 +111,7 @@ The Laws view was tested with a document of 58,000 letters (702 sentences): it o
 
 - Two conversations in the same project can change the same file. The references solve it with a copy of the folder per conversation (needs git). A simple first rule: warn when a second turn starts in a project where one is running.
 - The terminal pane draws lines and colors (`TERM=dumb`), not a full screen. Its helper is `python3`; a pseudo-terminal in Bend itself would remove it.
-- Open a folder… uses macOS's folder chooser. Elsewhere, `laweditor here`.
+- Open a folder… uses the computer's folder chooser: osascript on macOS, zenity or kdialog on Linux. With none of them it does nothing and says nothing; `laweditor here` works anywhere.
 - A deleted conversation goes to `.laweditor/trash`; the app has no way to bring it back.
 - A project's folder in the home keeps a simple name (letters, digits, "-"), as LawEditor names them; one renamed by hand with a space or a dot isn't listed. Open it with Open a folder… instead.
 - The server's guard (Origin, Host) is tested by hand, not proved.

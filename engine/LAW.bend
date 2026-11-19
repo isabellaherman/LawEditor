@@ -10,7 +10,7 @@ import ../harness/POLICY.bend as Policy
 def args.pick(is_codex: Bool, prompt: String) -> List<String>:
   match is_codex:
     case True{}:
-      ["exec", "--sandbox", Policy.codex_sandbox(Policy.law_agent()), prompt]
+      ["exec", "--skip-git-repo-check", "--sandbox", Policy.codex_sandbox(Policy.law_agent()), prompt]
     case False{}:
       ["-p", prompt, "--allowedTools", Policy.claude_tools(Policy.law_agent()), "--permission-mode", "acceptEdits"]
 
@@ -37,7 +37,7 @@ def locked_sh() -> String:
 def write(+cx: Sys.Ctx, +dir: String, +ai: String, sentence: String) -> IO(String):
   do IO<String>:
     rules : String <- Sys.read_file(Sys.told(cx, "AGENT.md"))
-    agent : U32 & String <- Sys.run("sh", "-c" <> locked_sh() <> dir <> ai <> args(ai, rules ++ "\n\n## Sentence\n\n" ++ sentence), 600000)
+    agent : U32 & String <- Sys.run_quiet("sh", "-c" <> locked_sh() <> dir <> ai <> args(ai, rules ++ "\n\n## Sentence\n\n" ++ sentence), 600000)
     check : U32 & String <- Sys.run_in(dir, "bend", ["LAWS.bend", "--check-only"], 120000)
     return reply(agent, check)
 

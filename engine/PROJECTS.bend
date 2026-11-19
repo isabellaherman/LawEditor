@@ -64,7 +64,7 @@ def projects() -> IO(String):
 # its project's key, its project's name (none for a draft), its name, its state (idle, working, asking) and
 # its title, split by tabs.
 def conversations() -> IO(String):
-  Sys.sh(projects_sh() ++ "projects | while IFS=\"$t\" read -r k d; do g=''; [ -e \"$d/.laweditor/draft\" ] || g=$(cat \"$d/.laweditor/name\" 2>/dev/null || basename \"$d\"); for f in \"$d\"/.laweditor/chats/*.log; do [ -e \"$f\" ] || continue; i=$(basename \"$f\" .log); m=$(stat -f %m \"$f\" 2>/dev/null || stat -c %Y \"$f\"); printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n' \"$m\" \"$k\" \"$g\" \"$i\" \"$(cat \"${f%.log}.state\" 2>/dev/null || printf idle)\" \"$(cat \"${f%.log}.title\" 2>/dev/null)\"; done; done | sort -rn | cut -f2-", [], 10000)
+  Sys.sh(projects_sh() ++ "projects | while IFS=\"$t\" read -r k d; do g=''; [ -e \"$d/.laweditor/draft\" ] || g=$(cat \"$d/.laweditor/name\" 2>/dev/null || basename \"$d\"); for f in \"$d\"/.laweditor/chats/*.log; do [ -e \"$f\" ] || continue; i=$(basename \"$f\" .log); m=$(stat -c %Y \"$f\" 2>/dev/null || stat -f %m \"$f\"); printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n' \"$m\" \"$k\" \"$g\" \"$i\" \"$(cat \"${f%.log}.state\" 2>/dev/null || printf idle)\" \"$(cat \"${f%.log}.title\" 2>/dev/null)\"; done; done | sort -rn | cut -f2-", [], 10000)
 
 # ---------- A project is born, and named ----------
 
@@ -123,11 +123,17 @@ def choose.at(none: Bool, +path: String) -> IO(String):
     case False{}:
       open_path(path)
 
-# POST /api/open-folder: the computer's own folder chooser (macOS), then open_path. "" when the person
-# cancels, or where there is no chooser to show.
+# The computer's own folder chooser: osascript on macOS; on Linux zenity (GNOME) or kdialog (KDE). Prints the
+# folder picked; fails when the person cancels or there is no chooser. What a chooser says on its errors is
+# dropped, so only the path is printed.
+def chooser_sh() -> String:
+  "t='Open a folder as a project'; if command -v osascript >/dev/null 2>&1; then osascript -e \"POSIX path of (choose folder with prompt \\\"$t\\\")\" 2>/dev/null; elif command -v zenity >/dev/null 2>&1; then zenity --file-selection --directory --title=\"$t\" 2>/dev/null; elif command -v kdialog >/dev/null 2>&1; then kdialog --getexistingdirectory \"$HOME\" --title \"$t\" 2>/dev/null; else exit 127; fi"
+
+# POST /api/open-folder: the computer's own folder chooser, then open_path. "" when the person cancels, or
+# where there is no chooser to show.
 def choose() -> IO(String):
   do IO<String>:
-    r : U32 & String <- Sys.run("osascript", ["-e", "POSIX path of (choose folder with prompt \"Open a folder as a project\")"], 600000)
+    r : U32 & String <- Sys.run("sh", ["-c", chooser_sh()], 600000)
     +path : String = chosen(r)
     choose.at(String.is_empty(path), path)
 
@@ -149,11 +155,16 @@ def read.at(bad: Bool, +dir: String, +path: String) -> IO(String):
 def read(+dir: String, +path: String) -> IO(String):
   read.at((String.contains(path, "..") || String.starts_with(path, "/") || String.is_empty(path)), dir, path)
 
-# POST /api/p/<key>/open: opens the project's folder on the computer.
+# POST /api/p/<key>/open: opens the project's folder on the computer: open on macOS, xdg-open elsewhere (on
+# Linux, open is another program, or none). Answers "ok", or "error" when nothing could open it.
+def open.said(r: U32 & String) -> String:
+  (code, out) = r
+  Sys.pick(U32.is_eq(code, 0), "ok", "error")
+
 def open(+dir: String) -> IO(String):
   do IO<String>:
-    r : U32 & String <- Sys.run_in(dir, "open", ["."], 5000)
-    return "ok"
+    r : U32 & String <- Sys.run_in(dir, "sh", ["-c", "if [ \"$(uname)\" = Darwin ]; then exec open .; else exec xdg-open .; fi"], 5000)
+    return open.said(r)
 
 # POST /api/c/<key>/<conversation>/delete: the conversation leaves the list. Its files go to the project's
 # .laweditor/trash: LawEditor never deletes what the person made.

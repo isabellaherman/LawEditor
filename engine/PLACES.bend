@@ -96,6 +96,10 @@ def answer(+dir: String, conv: String, question: String) -> String:
 def turn(+dir: String, turn: String) -> String:
   dir ++ "/.laweditor/turns/" ++ safe(turn) ++ ".jsonl"
 
+# A turn's work as ASK.bend read it, kept once the turn ended (its file never changes after).
+def work(+dir: String, turn: String) -> String:
+  dir ++ "/.laweditor/turns/" ++ safe(turn) ++ ".work"
+
 def stopped(+dir: String, turn: String) -> String:
   dir ++ "/.laweditor/turns/" ++ safe(turn) ++ ".stopped"
 

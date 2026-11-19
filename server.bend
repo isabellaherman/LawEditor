@@ -284,7 +284,7 @@ def conversation_get(+dir: String, +conv: String, +rest: List<&2, String>) -> IO
     (String.eq(Sys.nth(rest, 0n), "now"), ok(Turn.now(dir, conv))),
     (String.eq(Sys.nth(rest, 0n), "allowed"), ok(Turn.allowed(dir, conv))),
     (String.eq(Sys.nth(rest, 0n), "progress"), ok(Turn.progress(dir, Sys.nth(rest, 1n)))),
-    (String.eq(Sys.nth(rest, 0n), "work"), ok(Turn.work(dir, Sys.nth(rest, 1n)))),
+    (String.eq(Sys.nth(rest, 0n), "work"), ok(Turn.work(dir, conv, Sys.nth(rest, 1n)))),
     (String.eq(Sys.nth(rest, 0n), "output"), ok(Turn.output(dir, Sys.nth(rest, 1n), Sys.nth(rest, 2n))))
   ], missing())
 

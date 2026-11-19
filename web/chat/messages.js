@@ -19,10 +19,27 @@ const row = (mark, main, cls = "") => el(`<div class="turn__row ${cls}"><div cla
 const line = (kind, what, { meta = "", tone = "", mono = false } = {}) => `<div class="turn__line"><span class="tool__kind${tone ? " tool__kind--" + tone : ""}">${esc(kind)}</span><span class="tool__what${mono ? " mono" : ""}">${esc(what)}</span>${meta ? `<span class="tool__meta">${esc(meta)}</span>` : ""}</div>`;
 // A row that opens: its summary is the row (spans: a <summary> takes no <div>), then what it shows.
 const summary = (mark, main) => `<summary class="turn__row turn__row--sm"><span class="turn__mark">${mark}</span><span class="turn__main">${main.replace(/<(\/?)div/g, "<$1span")}</span></summary>`;
+const STEPS = 50;   // at most this many steps for an answer to appear word by word (web/chat/messages.js write)
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export function createMessages(list, page, at) {
-  const down = () => page.scrollTo({ top: page.scrollHeight, behavior: lessMotion.matches ? "auto" : "smooth" });
+  // The page follows the conversation down only while the person is at its end. Scrolling up to read lets
+  // them stay where they are; coming back to the end (or speaking) follows again. Only what the person does
+  // (wheel, touch, keys, the scroll bar) lets go: the page's own smooth scrolling passes through places
+  // far from the end and must not.
+  // held: a conversation opened again is being drawn; it is out of sight and nothing scrolls until it is whole.
+  let follow = true, pressed = false, held = false;
+  const atEnd = () => page.scrollHeight - page.scrollTop - page.clientHeight < 48;
+  const scroll = () => { if (!held) page.scrollTo({ top: page.scrollHeight, behavior: lessMotion.matches ? "auto" : "smooth" }); };
+  const down = () => { if (follow) scroll(); };
+  const mineDown = () => { follow = true; scroll(); };
+  const looked = () => requestAnimationFrame(() => { follow = atEnd(); });
+  page.addEventListener("wheel", (e) => { if (e.deltaY < 0) follow = false; else looked(); }, { passive: true });
+  page.addEventListener("touchmove", looked, { passive: true });
+  page.addEventListener("keydown", (e) => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(e.key)) looked(); });
+  page.addEventListener("pointerdown", () => { pressed = true; });
+  addEventListener("pointerup", () => { if (pressed) { pressed = false; looked(); } });
+  page.addEventListener("scroll", () => { if (pressed) follow = atEnd(); else if (atEnd()) follow = true; }, { passive: true });
 
   // Yours: a bubble at the right that fades in.
   // files: what the person pointed to with @, as tags after the text.
@@ -32,7 +49,7 @@ export function createMessages(list, page, at) {
     m.className = old ? "msg msg--me" : "msg msg--me is-arriving";
     m.textContent = text;
     for (const f of files) { const t = document.createElement("span"); t.className = "tag tag--mono"; t.textContent = "@" + f; m.append(" ", t); }
-    list.append(m); down();
+    list.append(m); if (old) down(); else mineDown();   // the person spoke: the page follows again
   }
 
   // A turn: the agent's face, then its rows. It goes on until the person speaks again.
@@ -142,15 +159,21 @@ export function createMessages(list, page, at) {
           if (!held) { verb.textContent = "Writing"; what.textContent = ""; }
           down();
         },
-        // The answer arrives whole from the CLI; its words appear one after another, each fading in.
-        async write(answer) {
+        // The answer arrives whole from the CLI; its words appear one after another, each fading in. It is
+        // already here, so the motion never makes the person wait: a long answer shows more words at each
+        // step, and the whole takes about a second and a half at most (STEPS steps of 30ms).
+        // shown(): false once the conversation left the page; the words stop there and nothing is finished.
+        async write(answer, shown = () => true) {
           if (!streamed && answer.trim()) {
             say(); words.textContent = "";
-            for (const w of answer.split(/(\s+)/).filter(Boolean)) {
+            const all = answer.split(/(\s+)/).filter(Boolean), count = all.filter((w) => /\S/.test(w)).length;
+            const each = Math.max(1, Math.ceil(count / STEPS));
+            let n = 0;
+            for (const w of all) {
               const s = document.createElement("span");
               if (/\S/.test(w)) s.className = "msg__word";
               s.textContent = w; words.append(s);
-              if (/\S/.test(w) && !lessMotion.matches) { down(); await sleep(30); }
+              if (/\S/.test(w) && !lessMotion.matches && ++n % each === 0) { down(); await sleep(30); if (!shown()) return; }
             }
           }
           prose(answer); finish(took()); part = null; down();
@@ -243,5 +266,12 @@ export function createMessages(list, page, at) {
     list.append(m); down();
   }
 
-  return { mine, turn, failed, ran, clear: () => list.replaceChildren() };
+  return { mine, turn, failed, ran, clear: () => { list.replaceChildren(); follow = true; },
+    // A conversation opened again: drawn out of sight (hold(true)), then shown whole at its end, where it
+    // was left, with no motion (hold(false)).
+    hold(on) {
+      held = on; list.hidden = on;
+      if (!on) { follow = true; page.scrollTo({ top: page.scrollHeight, behavior: "auto" }); }
+    },
+  };
 }

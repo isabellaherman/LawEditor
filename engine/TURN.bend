@@ -111,7 +111,7 @@ def with_model(has: Bool, flag: String, model: String, rest: List<String>) -> Li
       rest
 
 def codex_args(+model: String, prompt: String) -> List<String>:
-  "exec" <> with_model(Bool.not(String.is_empty(model)), "-m", model, ["--sandbox", Policy.codex_sandbox(Policy.chat()), prompt])
+  "exec" <> with_model(Bool.not(String.is_empty(model)), "-m", model, ["--skip-git-repo-check", "--sandbox", Policy.codex_sandbox(Policy.chat()), prompt])
 
 def claude_args(+model: String, prompt: String) -> List<String>:
   "-p" <> prompt <> Policy.claude_isolation() <> with_model(Bool.not(String.is_empty(model)), "--model", model,
@@ -140,7 +140,7 @@ def patience() -> String:
 def run_ai.at(codex: Bool, asks: Bool, +w: Talk, +turn: String, prompt: String) -> IO(U32 & String):
   match codex asks:
     case True{} _:
-      Sys.run_in(dir(w), "codex", codex_args(model(w), prompt), 600000)
+      Sys.run_in_quiet(dir(w), "codex", codex_args(model(w), prompt), 600000)
     case False{} True{}:
       Sys.run_to(dir(w), Places.turn(dir(w), turn), "env", patience() <> "claude" <> asking_args(w, turn, prompt), 4294967295)
     case False{} False{}:
@@ -694,10 +694,42 @@ def progress(+dir: String, turn: String) -> IO(String):
     text : String <- Sys.read_file(Places.turn(dir, turn))
     return Ask.progress(text)
 
-def work(+dir: String, turn: String) -> IO(String):
+# A turn ended when the conversation says how: it replied, it was stopped, or it could not start (a server
+# stopped in the middle of a turn writes "stopped" for it when it starts again). Its events' fields never
+# hold a tab of their own (EVENTS.bend writes it \t), so "reply<tab><turn><tab>" is that event and no other.
+def turn_over(+log: String, +turn: String) -> Bool:
+  (String.contains(log, "reply\t" ++ turn ++ "\t") || String.contains(log, "stopped\t" ++ turn) || String.contains(log, "fail\t" ++ turn ++ "\t"))
+
+def work.keep(keep: Bool, +file: String, +w: String) -> IO(String):
+  match keep:
+    case True{}:
+      do IO<String>:
+        Sys.write_file(file, w)
+        return w
+    case False{}:
+      IO.pure(String, w)
+
+def work.read(+dir: String, +conv: String, +turn: String) -> IO(String):
   do IO<String>:
     text : String <- Sys.read_file(Places.turn(dir, turn))
-    return Ask.work(text)
+    log : String <- Sys.read_file(Places.log(dir, conv))
+    +w : String = Ask.work(text)
+    work.keep((turn_over(log, turn) && Bool.not(String.is_empty(w))), Places.work(dir, turn), w)
+
+def work.at(kept: Bool, +dir: String, +conv: String, +turn: String, +k: String) -> IO(String):
+  match kept:
+    case True{}:
+      IO.pure(String, k)
+    case False{}:
+      work.read(dir, conv, turn)
+
+# GET work/<turn>: what the turn did (ASK.bend reads the turn's file). A turn that runs is read again at
+# each ask, as its file grows; one that ended is read once and kept (Places.work), so a conversation opened
+# again doesn't read every turn's file again.
+def work(+dir: String, +conv: String, +turn: String) -> IO(String):
+  do IO<String>:
+    +k : String <- Sys.read_file(Places.work(dir, turn))
+    work.at(Bool.not(String.is_empty(k)), dir, conv, turn, k)
 
 def output(+dir: String, turn: String, n: String) -> IO(String):
   do IO<String>:
