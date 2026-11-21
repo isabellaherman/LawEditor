@@ -3,6 +3,8 @@
 #   laweditor          a new conversation (or, in a folder that is a project, one in it)
 #   laweditor here     this folder becomes a project, and the conversation is in it
 #   laweditor list     the conversations, and nothing else
+#   laweditor timers   the timers the chats set (engine/CLOCK.bend); then "timers pause <n>", "resume <n>",
+#                      "test <n>" (its turn starts now) and "stop <n>" (it is taken away)
 #
 # It is a window, like the page: it sends what the person writes and answers to the server
 # (engine/TURN.bend conducts the turn) and prints the conversation's events (harness/EVENTS.bend).
@@ -21,6 +23,8 @@ import ./harness/ASK.bend as Ask
 import ./harness/CHAT.bend as Chat
 import ./harness/GATE.bend as Gate
 import ./harness/POLICY.bend as Policy
+import ./harness/TIMER.bend as Timer
+import ./harness/SKILL.bend as Skill
 
 # ---------- The window's own state ----------
 # key: the conversation's project ("" while it has none: it then names itself). seen: the events printed.
@@ -112,9 +116,9 @@ def settings(+c: Cli) -> String:
 
 # ---------- What an event looks like, in text ----------
 
-# What the person reads of a reply: without its LAW:, MODE:, PLAN: and PROJECT: lines.
+# What the person reads of a reply: without its LAW:, MODE:, PLAN:, PROJECT:, TIMER: and SKILL: lines.
 def shown(text: String) -> String:
-  Offer.words(Hear.words(Ask.plan_words(Chat.project_words(text))))
+  Skill.words(Timer.words(Offer.words(Hear.words(Ask.plan_words(Chat.project_words(text))))))
 
 def indent.go(ls: List<&2, String>) -> String:
   match ls:
@@ -132,7 +136,9 @@ def note_mark(+state: String) -> String:
 def keys(+q: String) -> String:
   Sys.pick(Ev.is_law(q), "  [a] Add   [A] Always add   [d] Don't add",
   Sys.pick(Ev.is_mode(q), "  [s] Switch   [n] Stay",
-  "  [y] Allow   [s] Allow for this session   [n] Don't allow"))
+  Sys.pick(Ev.is_timer(q), "  [y] Set timer   [n] Don't set",
+  Sys.pick(Ev.is_skill(q), "  [y] Save skill   [n] Don't save",
+  "  [y] Allow   [s] Allow for this session   [n] Don't allow"))))
 
 # What is said of a file that isn't Bend, on a line of its own ("" when nothing is).
 def gate_note(+note: String) -> String:
@@ -145,7 +151,7 @@ def gate_text(+text: String) -> String:
 
 def ask_text(+q: String, +text: String) -> String:
   Sys.pick(Ev.is_law(q), "  Law? \"" ++ text ++ "\"\n",
-  Sys.pick(Ev.is_mode(q), "  ? " ++ Sys.nth(String.lines(text), 0n) ++ "\n" ++ indent(String.join(Ev.after.drop(String.lines(text), 1n), "\n")),
+  Sys.pick((Ev.is_mode(q) || Ev.is_timer(q)), "  ? " ++ Sys.nth(String.lines(text), 0n) ++ "\n" ++ indent(String.join(Ev.after.drop(String.lines(text), 1n), "\n")),
   gate_text(text)))
 
 # What Bend said of the project after a reply changed it (engine/BUILD.bend): its check, and its page.
@@ -179,7 +185,8 @@ def show(+l: String, +at: String) -> String:
   Sys.pick(Ev.is_a(l, "check"), check_text(Ev.field(l, 1n), Ev.field(l, 2n)),
   Sys.pick(Ev.is_a(l, "page"), page_text(Ev.field(l, 1n), Ev.field(l, 2n), at),
   Sys.pick(Ev.is_a(l, "ran"), "$ " ++ Ev.field(l, 0n) ++ "\n" ++ indent(Ev.field(l, 2n)),
-  "")))))))))))
+  Sys.pick(Ev.is_a(l, "timer"), "◷ Timer, " ++ Ev.field(l, 1n) ++ ":\n" ++ indent(Ev.field(l, 2n)),
+  ""))))))))))))
 
 def show_all(ls: List<&2, String>, +at: String) -> String:
   match ls:
@@ -272,12 +279,18 @@ def word_of.law(+k: String) -> String:
 def word_of.mode(+k: String) -> String:
   Sys.pick(String.eq(k, "s"), "switch", Sys.pick(String.eq(k, "n"), "stay", ""))
 
+def word_of.timer(+k: String) -> String:
+  Sys.pick(String.eq(k, "y"), Timer.set_word(), Sys.pick(String.eq(k, "n"), Timer.dont_word(), ""))
+
+def word_of.skill(+k: String) -> String:
+  Sys.pick(String.eq(k, "y"), Skill.save_word(), Sys.pick(String.eq(k, "n"), Skill.dont_word(), ""))
+
 def word_of.gate(+k: String) -> String:
   Sys.pick(String.eq(k, "y"), Gate.allow_word(), Sys.pick(String.eq(k, "s"), Gate.session_word(), Sys.pick(String.eq(k, "n"), Gate.deny_word(), "")))
 
 # The word the server reads, from the letter the person typed ("" for a letter that isn't one of them).
 def word_of(+q: String, +k: String) -> String:
-  Sys.pick(Ev.is_law(q), word_of.law(k), Sys.pick(Ev.is_mode(q), word_of.mode(k), word_of.gate(k)))
+  Sys.pick(Ev.is_law(q), word_of.law(k), Sys.pick(Ev.is_mode(q), word_of.mode(k), Sys.pick(Ev.is_timer(q), word_of.timer(k), Sys.pick(Ev.is_skill(q), word_of.skill(k), word_of.gate(k)))))
 
 # Switch moves this window's mode too, as it moves the page's picker.
 def after_answer(+c: Cli, switched: Bool) -> Cli:
@@ -520,6 +533,65 @@ def here(wanted: Bool, +c: Cli, pwd: String) -> IO(Cli):
         +got : String <- post(url(c, "/api/open-path"), pwd)
         here.in(c, got)
 
+# ---------- The timers ----------
+# GET /api/timers answers the time now on its first line, then one timer per line: its project's key, its
+# folder, then the timer as it is kept (harness/TIMER.bend reads it).
+
+def timer_of(+row: String) -> Timer.Timer:
+  Timer.read(Ev.after.drop(String.split(row, Ev.tab()), 2n))
+
+def timers.rows(rows: List<&2, String>, +now: U32, +n: Nat) -> String:
+  match rows:
+    case Nil{}:
+      ""
+    case +h <> t:
+      "  " ++ Nat.show(n) ++ "  " ++ Timer.row(now, timer_of(h)) ++ "   [" ++ Sys.nth(String.split(h, Ev.tab()), 0n) ++ "]\n" ++ timers.rows(t, now, 1n+n)
+
+def timers.listing.at(none: Bool, +text: String) -> String:
+  match none:
+    case True{}:
+      "\n  No timers.\n\n"
+    case False{}:
+      "\n  Timers\n" ++ timers.rows(Ev.after.drop(Ev.lines(text), 1n), Timer.number(U32.read(Sys.nth(Ev.lines(text), 0n))), 1n) ++ "\n  laweditor timers pause <n> | resume <n> | test <n> | stop <n>\n\n"
+
+# The timers, numbered from 1, each with when it comes due next and its project's key in brackets.
+def timers.listing(+text: String) -> String:
+  timers.listing.at(String.is_empty(Sys.nth(Ev.lines(text), 1n)), text)
+
+# What is said once the server answered, for each thing asked of a timer.
+def timers.said(+verb: String, +answer: String, +t: Timer.Timer) -> String:
+  Sys.pick(String.eq(String.trim(answer), "busy"), "  Not now: that conversation is answering, or a question waits there.",
+  Sys.pick(String.eq(String.trim(answer), "gone"), "  That timer isn't there anymore.",
+  Sys.pick(String.eq(verb, "stop"), "  Stopped: ", Sys.pick(String.eq(verb, "pause"), "  Paused: ", Sys.pick(String.eq(verb, "resume"), "  Going again: ", "  Its turn started now, in its conversation: "))) ++ Timer.brief(t)))
+
+def timers.do.at(none: Bool, +c: Cli, +verb: String, +row: String) -> IO(Unit):
+  match none:
+    case True{}:
+      IO.print("  No timer with that number. laweditor timers lists them.")
+    case False{}:
+      do IO<Unit>:
+        +sent : String <- post(url(c, "/api/p/" ++ Sys.nth(String.split(row, Ev.tab()), 0n) ++ "/timer-" ++ verb), Timer.id(timer_of(row)))
+        IO.print(timers.said(verb, sent, timer_of(row)))
+
+# The n-th timer of the list (from 1; "" when there is none).
+def timers.pick(+n: U32, +text: String) -> String:
+  Sys.pick(U32.is_eq(n, 0), "", Sys.nth(Ev.after.drop(Ev.lines(text), 1n), U32.to_nat((n - 1 : U32))))
+
+def is_verb(+v: String) -> Bool:
+  (String.eq(v, "stop") || String.eq(v, "pause") || String.eq(v, "resume") || String.eq(v, "test"))
+
+# verb: "" lists them; stop, pause, resume and test are done to the n-th.
+def timers(does: Bool, +c: Cli, +verb: String, +n: String) -> IO(Unit):
+  match does:
+    case False{}:
+      do IO<Unit>:
+        text : String <- get(url(c, "/api/timers"))
+        IO.write(timers.listing(text))
+    case True{}:
+      do IO<Unit>:
+        +text : String <- get(url(c, "/api/timers"))
+        timers.do.at(String.is_empty(timers.pick(Timer.number(U32.read(n)), text)), c, verb, timers.pick(Timer.number(U32.read(n)), text))
+
 def start(up: Bool, list: Bool, +c: Cli, +a: String, pwd: String) -> IO(Unit):
   match up list:
     case False{} _:
@@ -535,6 +607,25 @@ def start(up: Bool, list: Bool, +c: Cli, +a: String, pwd: String) -> IO(Unit):
         r : Result<&1, &1, U32 & String, File> <- File.open("/dev/stdin", "r")
         begin(r, c2)
 
+# The words after the program's name, one per line, so each can be read more than once.
+def words_of.go(args: List<String>) -> String:
+  match args:
+    case Nil{}:
+      ""
+    case h <> t:
+      h ++ "\n" ++ words_of.go(t)
+
+def words_of(args: List<String>) -> List<&2, String>:
+  Ev.after.drop(String.lines(words_of.go(args)), 1n)
+
+# timers: the list, or "timers pause|resume|test|stop <n>", when the server is up. Everything else is a conversation (start).
+def begin_with(listed: Bool, up: Bool, +c: Cli, +w: List<&2, String>, pwd: String) -> IO(Unit):
+  match listed:
+    case True{}:
+      timers(is_verb(Sys.nth(w, 1n)), c, Sys.nth(w, 1n), Sys.nth(w, 2n))
+    case False{}:
+      start(up, String.eq(Sys.nth(w, 0n), "list"), c, Sys.nth(w, 0n), pwd)
+
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
@@ -543,6 +634,6 @@ def main() -> IO(Unit):
     pwd : String <- Sys.env("PWD", ".")
     +id : String <- Sys.new_id()
     +c : Cli = Cli{port, ai, "", "c" ++ id, 0n, 0}
-    +a : String = arg(args)
-    up : String <- get(url(c, "/api/told/HARNESS.md"))
-    start(Bool.not(String.is_empty(up)), String.eq(a, "list"), c, a, pwd)
+    +w : List<&2, String> = words_of(args)
+    +up : String <- get(url(c, "/api/told/HARNESS.md"))
+    begin_with((Bool.not(String.is_empty(up)) && String.eq(Sys.nth(w, 0n), "timers")), Bool.not(String.is_empty(up)), c, w, pwd)

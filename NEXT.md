@@ -1,3 +1,48 @@
+# Next: after skills and timers (0.1.14)
+
+Written on 2026-11-21. The chat keeps a skill the person approved, and comes back by itself when a timer comes due. What is still to decide or build.
+
+## The model (the owner's)
+
+The harness gives **resources** that don't know what they are for. A **skill** is the person's orientation for using them in one context. Today's resources: the project's files, the commands the mode allows, and the clock. The ones a bot that works alone still lacks: **hands** outside the project (a browser, a terminal of its own) and an **identity** (accounts of its own, kept in a vault, never the person's sessions). Each is a piece of its own, after this one.
+
+## Laws to propose (none is in `LAWS.bend`: they need the owner's yes)
+
+About `harness/TIMER.bend`, as it is:
+
+- **A timer that doesn't repeat leaves nothing after its turn.** `Timer.after` is empty when its kind is once.
+- **A paused timer is never due.** `Timer.due(now, t)` is false whenever `paused(t)`.
+- **Nothing is due with no calendar.** `Timer.due(0, t)` is false for every timer.
+- **A line shorter than a minute is no timer**, and neither is one with no day or no time of day. `is_proposal`.
+- **A span never overflows.** `span` answers 0 for anything longer than `longest()`.
+- **A time of day comes back on one of its days.** What `slot` answers falls on a day of the mask, after now.
+- **A turn a timer started sets none.** Today in `engine/TURN.bend` (`timers.one`); to be a law it has to move to `TIMER.bend` as a pure decision.
+
+About `harness/SKILL.bend`:
+
+- **What the person reads never holds a skill's lines.** `words` keeps no line that starts with a mark.
+- **A skill with no name or no text is never asked.** `is_whole`.
+
+## Next pieces, in the order I would take them (mine, not chosen)
+
+- **Skills and timers in the app**: a list of each, with Pause, Test and Stop, and a mark on a conversation that has a timer. Needs a design first (Bend-UI). Today: `laweditor timers`, and the files.
+- **A check before the model**: a command of the project runs first, and the chat is called only when it prints something. A timer with nothing new then costs nothing.
+- **Silence**: an answer that says there is nothing new is kept, but doesn't mark the conversation as moved.
+- **A timer started by something that happens**, not by the clock (a file changed, a message, a build).
+- **Skills for every project**: one library in the home, beside the ones of a project.
+- **Hands and identity**: the two resources above. The largest piece, and where the always-on computer matters.
+
+## The computer in the cloud
+
+The server is already what would run there: one process, its state in files, the clock inside it. What a cloud computer adds is a machine that never sleeps. To decide, the owner's call:
+
+- **Which machine.** Any Linux computer with a public address that can be reached by SSH. It costs money every month, used or not.
+- **How the windows reach it.** The server answers only its own address (`is_ours`), on purpose. The smallest safe way is an SSH tunnel: the page and the terminal still talk to `127.0.0.1`, and SSH carries it. Opening the server to the internet would need a login it doesn't have.
+- **Whose AI.** `claude` and `codex` are logged in on the machine itself: the owner's own accounts, kept on a computer that isn't at home.
+- **Where the projects live.** On that machine. Working on the same project from two computers needs them kept in step (git, most likely).
+
+`service.sh` already writes the systemd unit for Linux. Not tested there.
+
 # Next: a question when the server stops (found on 2026-11-19)
 
 Found while testing on Linux. Not built: what to do is below, smallest first.

@@ -8,6 +8,8 @@ import O from "../harness/OFFER.bend";
 import G from "../harness/GATE.bend";
 import A from "../harness/ASK.bend";
 import Ev from "../harness/EVENTS.bend";
+import T from "../harness/TIMER.bend";
+import Sk from "../harness/SKILL.bend";
 import { announce } from "bend-ui";
 import { codeBlock } from "bend-ui/syntax";
 import { mountDiagram } from "bend-ui/diagram";
@@ -47,8 +49,8 @@ const models = createModels(aiDd, modelDd, saved);
 const chatMode = createMode($("mode"), aiDd, models.get().ai, () => conversation("allowed"));   // POLICY.bend, HARNESS.md
 const place = createPlace($("place"), $("place-name"));
 
-// What the person reads: the reply without its LAW:, MODE:, PLAN: and PROJECT: lines (each module hides its own).
-const shown = (text) => inParts((part) => O.words(H.words(A.plan_words(C.project_words(part)))), text);
+// What the person reads: the reply without its LAW:, MODE:, PLAN:, PROJECT:, TIMER: and SKILL: lines (each module hides its own).
+const shown = (text) => inParts((part) => Sk.words(T.words(O.words(H.words(A.plan_words(C.project_words(part)))))), text);
 // The AI, its model and the mode, as the server reads them at the head of what is sent.
 const settings = () => { const { ai, model } = models.get(); return `${ai}\t${model}\t${chatMode.get()}`; };
 
@@ -93,8 +95,10 @@ const ANSWERS = {
   law: [{ label: "Don't add", value: Ev.dont_word() }, { label: "Always add", value: Ev.always_word() }, { label: "Add", value: Ev.add_word(), main: true }],
   mode: [{ label: "Stay", value: "stay" }, { label: "Switch", value: "switch", main: true }],
   gate: [{ label: "Don't allow", value: G.deny_word() }, { label: "Allow for this session", value: G.session_word() }, { label: "Allow", value: G.allow_word(), main: true }],
+  timer: [{ label: "Don't set", value: T.dont_word() }, { label: "Set timer", value: T.set_word(), main: true }],
+  skill: [{ label: "Don't save", value: Sk.dont_word() }, { label: "Save skill", value: Sk.save_word(), main: true }],
 };
-const kindOf = (q) => (Ev.is_law(q) ? "law" : Ev.is_mode(q) ? "mode" : "gate");
+const kindOf = (q) => (Ev.is_law(q) ? "law" : Ev.is_mode(q) ? "mode" : Ev.is_timer(q) ? "timer" : Ev.is_skill(q) ? "skill" : "gate");
 
 // A question: what it asks goes to the message box's place (composer.ask), where the person answers; the
 // turn keeps the record (a rule's row with what came of it, or one line saying what was answered).
@@ -104,13 +108,15 @@ function question(q, text, open) {
   if (kind === "law") {
     card = t.rule(text);
     ask = { title: "Add this rule to the document?", body: `<span class="turn__text">${esc(text)}</span>` };
-  } else if (kind === "mode") {
+  } else if (kind === "mode" || kind === "timer") {
+    // TIMER.question(): the question; then what the timer costs and does.
     const [title, ...why] = text.split("\n");
-    card = t.record("");   // its note says it whole ("Switched to Ask before changes.")
+    card = t.record("");   // its note says it whole ("Switched to Ask before changes.", "Timer set: every 4 hours.")
     ask = { title, body: why.length ? `<span class="turn__note">${esc(why.join("\n"))}</span>` : "" };
   } else {
     // GATE.question(): the question; then the language and name of what would change, and what is said of
-    // a file that isn't Bend; then what would change.
+    // a file that isn't Bend; then what would change. A skill to save (SKILL.question) comes in the same
+    // shape: its whole text is what would be written.
     const [title, meta = "", ...preview] = text.split("\n"), [lang, name, note = ""] = meta.split("\t");
     const code = preview.join("\n").replace(/\n+$/, "");
     card = t.record(G.action_of(title));
@@ -152,6 +158,8 @@ async function draw(line, old, later) {
     // Until the engine's note comes, the record says what was answered, in the gate's own words.
     if (k === "gate") cards.get(q)?.answered(G.note(f(1)).replace(/\.$/, ""), !!G.lets_run(f(1)));
     else if (k === "mode") cards.get(q)?.answered(f(1) === "switch" ? "Switched" : "Stayed", f(1) === "switch");
+    else if (k === "timer") cards.get(q)?.answered(T.sets(f(1)) ? "Timer set" : "Not set", !!T.sets(f(1)));
+    else if (k === "skill") cards.get(q)?.answered(Sk.saves(f(1)) ? "Skill saved" : "Not saved", !!Sk.saves(f(1)));
     else cards.get(q)?.answered();
     if (k === "mode" && f(1) === "switch") chatMode.set(O.mode_after(O.switch()));
     if (k === "gate") { if (G.keeps(f(1))) chatMode.allowed(); reply?.waiting(false); }
@@ -165,6 +173,8 @@ async function draw(line, old, later) {
   if (kind === "check") uiTurn().checked(f(1), f(2));
   if (kind === "page") { uiTurn().bundled(f(1), f(2)); if (!old) document.dispatchEvent(new CustomEvent("laweditor:page")); }   // the frame shows the new one
   if (kind === "ran") { ui = null; messages.ran(f(0), f(1), f(2)); }
+  // A timer the person set came due (engine/CLOCK.bend): a turn of its own, which starts by saying so.
+  if (kind === "timer") { ui = null; uiTurn().record(f(2).split("\n")[0]).answered("Timer, " + f(1), true); }
 }
 
 // Reads the events the page hasn't seen and draws them, in order.
@@ -321,5 +331,5 @@ const told = async (name, el, md) => {
   if (md) { el.innerHTML = markdown(text || `# ${name} not found`); el.querySelectorAll("pre").forEach((pre) => highlight(pre)); }
   else el.textContent = text || `${name} not found`;
 };
-told("HARNESS.md", $("harness-md")); told("HEAR.md", $("hear-md"), true); told("CHAT.md", $("chat-md"), true);
+told("HARNESS.md", $("harness-md")); told("HEAR.md", $("hear-md"), true); told("SKILL.md", $("skill-md"), true); told("TIMER.md", $("timer-md"), true); told("CHAT.md", $("chat-md"), true);
 show(); follow();

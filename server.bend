@@ -7,7 +7,8 @@
 # from 4280. What the projects built is served at a second door (LAWEDITOR_PAGES_PORT, or the port plus
 # 1000): see "The pages door" below. It keeps no "current" project and no conversation in memory: every request names its project
 # and its conversation, and what happened is in their files. So any number of windows and conversations
-# can go at once, and all of them see the same thing.
+# can go at once, and all of them see the same thing. While it runs it also keeps the clock (engine/CLOCK.bend):
+# a timer the chat set comes due only while this server is up.
 #
 # This file is the door: it reads a request and hands it to the engine (engine/).
 
@@ -18,6 +19,7 @@ import ./engine/PROJECTS.bend as Proj
 import ./engine/TURN.bend as Turn
 import ./engine/LAW.bend as Law
 import ./engine/TERMINAL.bend as Term
+import ./engine/CLOCK.bend as Clock
 import ./harness/MODELS.bend as Models
 import ./harness/GATE.bend as Gate
 import ./harness/EVENTS.bend as Ev
@@ -198,9 +200,9 @@ def models.at(known: Bool, +ai: String) -> IO(String):
 def models(+ai: String) -> IO(String):
   models.at(Turn.is_ai(ai), ai)
 
-# What an AI is told, as it is: only these four files.
+# What an AI is told, as it is: only these six files.
 def is_told(+name: String) -> Bool:
-  (String.eq(name, "AGENT.md") || String.eq(name, "CHAT.md") || String.eq(name, "HEAR.md") || String.eq(name, "HARNESS.md"))
+  (String.eq(name, "AGENT.md") || String.eq(name, "CHAT.md") || String.eq(name, "HEAR.md") || String.eq(name, "SKILL.md") || String.eq(name, "TIMER.md") || String.eq(name, "HARNESS.md"))
 
 def told.at(known: Bool, +cx: Sys.Ctx, name: String) -> IO(String):
   match known:
@@ -242,7 +244,7 @@ def project_get(+cx: Sys.Ctx, +dir: String, +rest: List<&2, String>) -> IO(Strin
     ((String.eq(Sys.nth(rest, 0n), "file") && is_project_file(Sys.nth(rest, 1n))), ok(Sys.read_file(dir ++ "/" ++ Sys.nth(rest, 1n))))
   ], missing())
 
-def project_post(+cx: Sys.Ctx, +dir: String, +rest: List<&2, String>, +body: String) -> IO(String):
+def project_post(+cx: Sys.Ctx, +key: String, +dir: String, +rest: List<&2, String>, +body: String) -> IO(String):
   routes([
     (String.is_empty(dir), missing()),
     ((String.eq(Sys.nth(rest, 0n), "file") && is_project_file(Sys.nth(rest, 1n))), ok(saved(dir, Sys.nth(rest, 1n), body))),
@@ -251,6 +253,10 @@ def project_post(+cx: Sys.Ctx, +dir: String, +rest: List<&2, String>, +body: Str
     (is2(rest, "term", "start"), ok(Term.start(dir))),
     (is2(rest, "term", "in"), ok(Term.keys(dir, body))),
     (is2(rest, "term", "stop"), ok(Term.stop(dir))),
+    (String.eq(Sys.nth(rest, 0n), "timer-stop"), ok(Clock.stop(dir, body))),
+    (String.eq(Sys.nth(rest, 0n), "timer-pause"), ok(Clock.pause(dir, body))),
+    (String.eq(Sys.nth(rest, 0n), "timer-resume"), ok(Clock.resume(dir, body))),
+    (String.eq(Sys.nth(rest, 0n), "timer-test"), ok(Clock.test(cx, key, dir, body))),
     (String.eq(Sys.nth(rest, 0n), "rename"), ok(Proj.rename(dir, body))),
     (String.eq(Sys.nth(rest, 0n), "open"), ok(Proj.open(dir)))
   ], missing())
@@ -262,7 +268,7 @@ def project(+cx: Sys.Ctx, post: Bool, +key: String, +rest: List<&2, String>, +bo
     case True{}:
       do IO<String>:
         +dir : String <- Proj.ensure(key, key)
-        project_post(cx, dir, rest, body)
+        project_post(cx, key, dir, rest, body)
     case False{}:
       do IO<String>:
         +dir : String <- Proj.dir(key)
@@ -354,6 +360,7 @@ def route_get(+cx: Sys.Ctx, +p: List<&2, String>, +path: String) -> IO(String):
     (is2(p, "api", "projects"), ok(Proj.projects())),
     (is2(p, "api", "pages"), ok(IO.pure(String, pages_url(cx)))),
     (is2(p, "api", "conversations"), ok(Proj.conversations())),
+    (is2(p, "api", "timers"), ok(Clock.list())),
     (is2(p, "api", "p"), project(cx, False{}, Sys.nth(p, 2n), Ev.after.drop(p, 3n), "")),
     (is2(p, "api", "c"), conversation(cx, False{}, Sys.nth(p, 2n), Sys.nth(p, 3n), Ev.after.drop(p, 4n), "")),
     (String.eq(Sys.nth(p, 0n), "mcp"), IO.pure(String, http("405 Method Not Allowed", "text/plain; charset=utf-8", ""))),
@@ -648,4 +655,5 @@ def main() -> IO(Unit):
     r : Result<&1, &1, U32 & String, Listener> <- TCP.listen("127.0.0.1", Sys.pages(want))
     +cx : Sys.Ctx <- pages.open(r, want)
     IO.print("LawEditor: http://" ++ Sys.address(cx))
+    IO.spawn(Unit, Clock.run(4294967295n, cx))
     serve(4294967295n, l, cx)

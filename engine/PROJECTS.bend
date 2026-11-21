@@ -32,7 +32,7 @@ def dir(+key: String) -> IO(String):
 # $0 the folder, $1 its name, $2 "1" for a conversation's own new folder (a draft). Only LawEditor's own
 # .laweditor folder is made: no file of the project is, in a new folder or in one opened from elsewhere.
 def make_sh() -> String:
-  "[ -n \"$2\" ] || [ -d \"$0\" ] || exit 0; new=; [ -d \"$0/.laweditor\" ] || new=1; mkdir -p \"$0/.laweditor/chats\" \"$0/.laweditor/allowed\" \"$0/.laweditor/turns\"; [ -e \"$0/.laweditor/name\" ] || printf '%s' \"$1\" > \"$0/.laweditor/name\"; [ -n \"$new\" ] && [ -n \"$2\" ] && : > \"$0/.laweditor/draft\"; printf ok"
+  "[ -n \"$2\" ] || [ -d \"$0\" ] || exit 0; new=; [ -d \"$0/.laweditor\" ] || new=1; mkdir -p \"$0/.laweditor/chats\" \"$0/.laweditor/allowed\" \"$0/.laweditor/turns\" \"$0/.laweditor/timers\" \"$0/.laweditor/skills\"; [ -e \"$0/.laweditor/name\" ] || printf '%s' \"$1\" > \"$0/.laweditor/name\"; [ -n \"$new\" ] && [ -n \"$2\" ] && : > \"$0/.laweditor/draft\"; printf ok"
 
 def ensure.made(+dir: String, +out: String) -> String:
   Sys.pick(String.eq(out, "ok"), dir, "")

@@ -5,7 +5,7 @@
 # computer keeps its place, and the home's .folders file knows where it is (its key starts with "x-").
 # In a project: its program, in .bend files (main.bend is where it starts; index.html when it has a page),
 # RULES.md (the person's rules, one sentence per line), LAWS.bend (their laws, which import the program),
-# and .laweditor/ (its name, its conversations, what was allowed, each turn's record, Bend's guide for
+# and .laweditor/ (its name, its conversations, what was allowed, its timers, the person's skills, each turn's record, Bend's guide for
 # the chat to read, and the page as Bend last bundled it). LawEditor makes none of the first three: each
 # appears when there is something to put in it.
 
@@ -106,6 +106,21 @@ def stopped(+dir: String, turn: String) -> String:
 # What the person allowed for a conversation (GATE.bend).
 def allowed(+dir: String, conv: String) -> String:
   dir ++ "/.laweditor/allowed/" ++ safe(conv) ++ ".allowed"
+
+# The project's timers (harness/TIMER.bend), one file each, named by the timer: setting one writes a file
+# and taking one away removes it, so two computations never write the same file.
+def timers(+dir: String) -> String:
+  dir ++ "/.laweditor/timers/"
+
+def timer(+dir: String, id: String) -> String:
+  timers(dir) ++ safe(id)
+
+# The person's skills (harness/SKILL.bend), one file each, named by the skill's name in simple letters.
+def skills(+dir: String) -> String:
+  dir ++ "/.laweditor/skills/"
+
+def skill(+dir: String, slug: String) -> String:
+  skills(dir) ++ safe(slug) ++ ".md"
 
 # A terminal opened in the project: what it printed, and where its keys go.
 def term_out(+dir: String) -> String:

@@ -1,9 +1,9 @@
 # LawEditor's engine: a conversation's turn. The person writes; the chat answers; the engine has Bend
-# check what the chat changed (BUILD.bend), asks what has to be asked (a law it heard, the mode it offers,
-# an action that needs a yes), writes the laws, and keeps every step as an event (harness/EVENTS.bend). A window only sends what the person wrote or
+# check what the chat changed (BUILD.bend), asks what has to be asked (a law it heard, a skill to save, a
+# timer it wants, the mode it offers, an action that needs a yes), writes the laws, and keeps every step as an event (harness/EVENTS.bend). A window only sends what the person wrote or
 # answered, and draws the events: the page and the terminal show the same conversation.
 #
-# The rules of each step are in harness/ (HEAR, OFFER, GATE, POLICY, CHAT); this file runs them in order.
+# The rules of each step are in harness/ (HEAR, SKILL, TIMER, OFFER, GATE, POLICY, CHAT); this file runs them in order.
 
 import Base
 import ./SYS.bend as Sys
@@ -18,6 +18,8 @@ import ../harness/GATE.bend as Gate
 import ../harness/CHAT.bend as Chat
 import ../harness/HEAR.bend as Hear
 import ../harness/OFFER.bend as Offer
+import ../harness/TIMER.bend as Timer
+import ../harness/SKILL.bend as Skill
 
 # ---------- A conversation, while the engine works on it ----------
 # key and dir: its project and that project's folder. ai, model, mode: what the person picked under the
@@ -156,7 +158,7 @@ def mode_told(asks: Bool) -> String:
     case False{}:
       Policy.mode_section(Policy.chat_mode())
 
-# What the chat is told: CHAT.md, its mode, its skill (HEAR.md), then the conversation so far.
+# What the chat is told: CHAT.md, its mode, what it hears, the person's skills and the timers (HEAR.md, SKILL.md, TIMER.md), then the conversation so far.
 def prompt(+w: Talk, rules: String, skill: String, +log: String, extra: String) -> String:
   rules ++ "\n\n" ++ mode_told(asks(w)) ++ "\n\n" ++ skill ++ "\n\n## Chat\n\n" ++ Chat.with_project(Ev.talk(log), Ev.project(log)) ++ extra
 
@@ -309,6 +311,106 @@ def laws(n: Nat, +i: Nat, +w: Talk, +turn: String, +answer: String) -> IO(Unit):
         laws.one(w, law_question(turn, i), Hear.proposal(answer, i))
         laws(m, 1n+i, w, turn, answer)
 
+# ---------- The skills it writes (SKILL.bend) ----------
+
+def skill_question(+turn: String, +i: Nat) -> String:
+  "skill-" ++ turn ++ "-" ++ Nat.show(i)
+
+def skills.said(saves: Bool, +w: Talk, +q: String, +name: String, body: String) -> IO(Unit):
+  match saves:
+    case True{}:
+      do IO<Unit>:
+        Sys.write_file(Places.skill(dir(w), Skill.slug(name)), Skill.file(name, body))
+        emit(w, Ev.event("note", [q, "ok", Skill.saved_note(name)]))
+    case False{}:
+      emit(w, Ev.event("note", [q, "none", "Not saved."]))
+
+# The person sees the whole text before it is kept. A name that is already a skill asks to replace it.
+def skills.one(whole: Bool, +w: Talk, +q: String, +name: String, +body: String) -> IO(Unit):
+  match whole:
+    case False{}:
+      IO.pure(Unit, Unit{})
+    case True{}:
+      do IO<Unit>:
+        old : String <- Sys.read_file(Places.skill(dir(w), Skill.slug(name)))
+        +said : String <- ask(w, q, Skill.question(Bool.not(String.is_empty(old)), name, body))
+        skills.said(Skill.saves(said), w, q, name, body)
+
+# Every skill the reply holds (its SKILL: lines), one question at a time, in order.
+def skills(n: Nat, +i: Nat, +w: Talk, +turn: String, +answer: String) -> IO(Unit):
+  match n:
+    case 0n:
+      IO.pure(Unit, Unit{})
+    case 1n+m:
+      do IO<Unit>:
+        skills.one(Skill.is_whole(Skill.name(answer, i), Skill.body(answer, i)), w, skill_question(turn, i), Skill.name(answer, i), Skill.body(answer, i))
+        skills(m, 1n+i, w, turn, answer)
+
+# The project's skills, for the chat: each file's name without its end, a tab, its first line.
+def skills.have(+w: Talk) -> IO(String):
+  Sys.sh("for f in \"$0\"*.md; do [ -f \"$f\" ] && printf '%s\\t%s\\n' \"$(basename \"$f\" .md)\" \"$(head -n 1 \"$f\")\"; done; true", [Places.skills(dir(w))], 5000)
+
+# ---------- The timers it asks for (TIMER.bend) ----------
+
+def timer_question(+turn: String, +i: Nat) -> String:
+  "timer-" ++ turn ++ "-" ++ Nat.show(i)
+
+# How many timers the project has.
+def timers.have(+w: Talk) -> IO(U32):
+  do IO<U32>:
+    out : String <- Sys.sh("ls \"$0\" 2>/dev/null | wc -l", [Places.timers(dir(w))], 5000)
+    return Timer.number(U32.read(String.trim(out)))
+
+# The timer is a file of its own, written once the calendar said what time it is: with no time, it would
+# come due at once.
+def timers.write(blind: Bool, +w: Talk, +q: String, +line: String, +now: U32) -> IO(Unit):
+  match blind:
+    case True{}:
+      emit(w, Ev.event("note", [q, "error", "Not set: the computer's clock couldn't be read."]))
+    case False{}:
+      do IO<Unit>:
+        +id : String <- Sys.new_id()
+        zone : String <- Sys.zone()
+        Sys.write_file(Places.timer(dir(w), id), Timer.write(Timer.make(id, line, now, Timer.zone_of(zone), conv(w), ai(w), model(w), mode(w))))
+        emit(w, Ev.event("note", [q, "ok", Timer.set_note(line)]))
+
+def timers.said(sets: Bool, +w: Talk, +q: String, +line: String) -> IO(Unit):
+  match sets:
+    case True{}:
+      do IO<Unit>:
+        +now : U32 <- Sys.now()
+        timers.write(U32.is_eq(now, 0), w, q, line, now)
+    case False{}:
+      emit(w, Ev.event("note", [q, "none", "Not set."]))
+
+# A turn a timer started sets none, and nothing is said of it. With no room left, the question is closed
+# as it is asked, with why. Otherwise the person is asked, as for a rule.
+def timers.one(woken: Bool, room: Bool, +w: Talk, +q: String, +line: String) -> IO(Unit):
+  match woken room:
+    case True{} _:
+      IO.pure(Unit, Unit{})
+    case False{} False{}:
+      do IO<Unit>:
+        emit(w, Ev.event("ask", [q, Timer.question(line)]))
+        emit(w, Ev.event("answer", [q, Timer.dont_word()]))
+        emit(w, Ev.event("note", [q, "none", Timer.full_note()]))
+    case False{} True{}:
+      do IO<Unit>:
+        +said : String <- ask(w, q, Timer.question(line))
+        timers.said(Timer.sets(said), w, q, line)
+
+# Every timer the reply proposes (its TIMER: lines), one question at a time, in order.
+def timers(n: Nat, +i: Nat, +w: Talk, +turn: String, +answer: String) -> IO(Unit):
+  match n:
+    case 0n:
+      IO.pure(Unit, Unit{})
+    case 1n+m:
+      do IO<Unit>:
+        log : String <- log_of(w)
+        have : U32 <- timers.have(w)
+        timers.one(Ev.woken(log), Timer.has_room(have), w, timer_question(turn, i), Timer.proposal(answer, i))
+        timers(m, 1n+i, w, turn, answer)
+
 # ---------- The mode it offers (OFFER.bend) ----------
 
 def switch_word() -> String: "switch"
@@ -348,7 +450,7 @@ def step(switched: Bool, broke: Bool, +w: Talk) -> Step:
       Step{False{}, w, ""}
 
 # The chat answered. In order: its project, if this made one; Bend's check of what it changed; the laws
-# it heard; the mode it offers; then the laws are written, without holding the talk.
+# it heard; the skills it wrote; the timers it asks for; the mode it offers; then the laws are written, without holding the talk.
 def replied(+w: Talk, +turn: String, +answer: String) -> IO(Step):
   do IO<Step>:
     emit(w, Ev.event("reply", [turn, answer]))
@@ -356,6 +458,8 @@ def replied(+w: Talk, +turn: String, +answer: String) -> IO(Step):
     +broke : Bool <- built(w2, turn)
     hear(Hear.count(answer), 0n, w2, turn, answer)
     +w3 : Talk <- promoted(w2)
+    skills(Skill.count(answer), 0n, w3, turn, answer)
+    timers(Timer.count(answer), 0n, w3, turn, answer)
     +switched : Bool <- offer(w3, turn, answer)
     IO.spawn(Unit, laws(Hear.count(answer), 0n, w3, turn, answer))
     return step(switched, broke, w3)
@@ -418,8 +522,11 @@ def one(+w: Talk, extra: String) -> IO(Step):
     wrote : String <- guide(w)
     rules : String <- Sys.read_file(Sys.told(cx(w), "CHAT.md"))
     skill : String <- Sys.read_file(Sys.told(cx(w), "HEAR.md"))
+    skills : String <- Sys.read_file(Sys.told(cx(w), "SKILL.md"))
+    +have : String <- skills.have(w)
+    timer : String <- Sys.read_file(Sys.told(cx(w), "TIMER.md"))
     +log : String <- log_of(w)
-    agent : U32 & String <- run_ai(w, turn, prompt(w, rules, skill, log, extra))
+    agent : U32 & String <- run_ai(w, turn, prompt(w, rules, skill ++ "\n\n" ++ skills ++ "\n\n" ++ Skill.listed(have) ++ "\n\n" ++ timer, log, extra))
     stopped : String <- Sys.read_file(Places.stopped(dir(w), turn))
     ended(w, turn, agent, stopped)
 
@@ -537,6 +644,31 @@ def again(+cx: Sys.Ctx, +key: String, +conv: String, +body: String) -> IO(String
     +dir : String <- Proj.dir(key)
     again.in((String.is_empty(dir) || Bool.not(is_ai(Sys.nth(String.split(body, Ev.tab()), 0n)))), talk_of(cx, key, dir, conv, Sys.nth(String.lines(body), 0n)))
 
+# ---------- A timer comes due (CLOCK.bend keeps the time; TIMER.bend says when) ----------
+# The clock calls this, and nobody else: the turn it starts is the same as one a message starts, in the
+# conversation that set the timer, with the AI, model and mode it had then. So what the chat may do in it
+# is what the person had allowed, and an action that needs a yes still waits for one.
+# Answers "ok" (the turn started), "busy" (the chat answers or a question waits: the clock tries again
+# at its next look) or "gone" (the conversation isn't there anymore: the timer is taken away).
+
+def wake.go(gone: Bool, can: Bool, +w: Talk, +t: Timer.Timer) -> IO(String):
+  match gone can:
+    case True{} _:
+      IO.pure(String, "gone")
+    case False{} False{}:
+      IO.pure(String, "busy")
+    case False{} True{}:
+      do IO<String>:
+        emit(w, Ev.event("timer", [Timer.id(t), Timer.when_of(t), Timer.prompt(t)]))
+        state(w, Ev.working())
+        IO.spawn(Unit, turns(4n, True{}, w, "\n\n" ++ Timer.told()))
+        return "ok"
+
+def wake(+cx: Sys.Ctx, +key: String, +dir: String, +t: Timer.Timer) -> IO(String):
+  do IO<String>:
+    +log : String <- Sys.read_file(Places.log(dir, Timer.conv(t)))
+    wake.go((String.is_empty(log) || Bool.not(is_ai(Timer.ai(t)))), Ev.can_say(log), Talk{cx, key, dir, Timer.conv(t), Timer.ai(t), Timer.model(t), Timer.mode(t)}, t)
+
 # ---------- The person runs a command themselves (!) ----------
 
 def ran.done(+w: Talk, +command: String, r: U32 & String) -> IO(String):
@@ -596,7 +728,7 @@ def stop.answer(none: Bool, +dir: String, +conv: String, +q: String) -> IO(Unit)
     case True{}:
       IO.pure(Unit, Unit{})
     case False{}:
-      Sys.write_file(Places.answer(dir, conv, q), stop.word(Ev.is_law(q), Ev.is_mode(q)))
+      Sys.write_file(Places.answer(dir, conv, q), stop.word((Ev.is_law(q) || Ev.is_timer(q) || Ev.is_skill(q)), Ev.is_mode(q)))
 
 def stop.turn(none: Bool, +dir: String, +turn: String) -> IO(Unit):
   match none:

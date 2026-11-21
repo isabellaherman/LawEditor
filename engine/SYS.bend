@@ -197,6 +197,29 @@ def wait(fuel: Nat, +path: String, said: String) -> IO(String):
         got : String <- read_file(path)
         wait(f, path, String.trim(got))
 
+# ---------- The calendar ----------
+# Bend's own clock (IO.now) counts from when the program started: it measures a wait, and starts again
+# from zero with the program. A timer has to outlive the server, so it is kept by the computer's
+# calendar: the seconds since 1970, asked to `date`.
+
+def now.read(m: Maybe<&2, U32>) -> U32:
+  match m:
+    case None{}:
+      0
+    case Some{n}:
+      n
+
+# The seconds since 1970 (0 if the calendar couldn't be read).
+def now() -> IO(U32):
+  do IO<U32>:
+    out : String <- sh("date +%s", [], 5000)
+    return now.read(U32.read(String.trim(out)))
+
+# How far this computer's clock is from the world's, as `date` says it ("-0300"): a time of day is a
+# place's own (harness/TIMER.bend reads it).
+def zone() -> IO(String):
+  sh("date +%z", [], 5000)
+
 # ---------- Names ----------
 
 def id_of(r: Result<&1, &1, U32 & String, U32>) -> String:

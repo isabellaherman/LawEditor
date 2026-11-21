@@ -8,13 +8,14 @@
 #   reply   <turn> <text>                       its answer, whole (with its LAW:, MODE:, PLAN: and PROJECT: lines)
 #   fail    <turn> <why>                        it couldn't answer
 #   stopped <turn>                              the person stopped it
-#   ask     <question> <text>                   a question for the person (law-…, mode-…, gate-…)
+#   ask     <question> <text>                   a question for the person (law-…, mode-…, gate-…, timer-…, skill-…)
 #   answer  <question> <word>                   what they answered
 #   note    <question> <state> <text>           what came of it (busy, ok, error, none)
 #   project <key> <name>                        the conversation's project got its folder and name
 #   check   <turn> <state> <text>               Bend checked the project after the turn changed it (ok, error)
 #   page    <turn> <state> <text>               Bend bundled the project's page (ok, warn, error)
 #   ran     <command> <code> <output>           a command the person ran themselves (!)
+#   timer   <timer> <when> <text>               a timer the person set came due and started a turn (TIMER.bend)
 #
 # Nothing is ever taken out: a window that has read n events asks for the ones after n.
 
@@ -186,12 +187,20 @@ def talk.line(me: Bool, reply: Bool, ran: Bool, told: Bool, +l: String, rest: Li
     case False{} False{} False{} False{}:
       rest
 
+# A timer that came due speaks as the app, not as the person: they set it, but they aren't the one writing now.
+def talk.woke(woke: Bool, +l: String, rest: List<&2, String>) -> List<&2, String>:
+  match woke:
+    case True{}:
+      ("LawEditor: a timer the person set (" ++ field(l, 1n) ++ ") came due. It asks:\n" ++ field(l, 2n)) <> rest
+    case False{}:
+      rest
+
 def talk.go(xs: List<&2, String>) -> List<&2, String>:
   match xs:
     case Nil{}:
       Nil{}
     case +h <> t:
-      talk.line(is_a(h, "me"), is_a(h, "reply"), is_a(h, "ran"), is_told(h), h, talk.go(t))
+      talk.woke(is_a(h, "timer"), h, talk.line(is_a(h, "me"), is_a(h, "reply"), is_a(h, "ran"), is_told(h), h, talk.go(t)))
 
 def talk(log: String) -> String:
   String.join(talk.go(lines(log)), "\n")
@@ -347,6 +356,26 @@ def noted(log: String, +q: String) -> String:
 # answered no, a turn that was running failed, and a law that was being written is said not to be.
 # Without them the conversation would wait forever.
 
+# What set the chat going last: a timer (True), or the person (a message, a command of theirs).
+def woken.step(person: Bool, timer: Bool, was: Bool) -> Bool:
+  match person timer:
+    case True{} _:
+      False{}
+    case False{} True{}:
+      True{}
+    case False{} False{}:
+      was
+
+def woken.go(xs: List<&2, String>, was: Bool) -> Bool:
+  match xs:
+    case Nil{}:
+      was
+    case +h <> t:
+      woken.go(t, woken.step((is_a(h, "me") || is_a(h, "ran")), is_a(h, "timer"), was))
+
+def woken(log: String) -> Bool:
+  woken.go(lines(log), False{})
+
 def no_word.at(heard: Bool, offer: Bool) -> String:
   match heard offer:
     case True{} _:
@@ -356,9 +385,9 @@ def no_word.at(heard: Bool, offer: Bool) -> String:
     case False{} False{}:
       "deny"
 
-# The word that says no to a question, by its kind (HEAR.bend, OFFER.bend, GATE.bend).
+# The word that says no to a question, by its kind (HEAR.bend, TIMER.bend and SKILL.bend share theirs, OFFER.bend, GATE.bend).
 def no_word(+q: String) -> String:
-  no_word.at(String.starts_with(q, "law-"), String.starts_with(q, "mode-"))
+  no_word.at((String.starts_with(q, "law-") || String.starts_with(q, "timer-") || String.starts_with(q, "skill-")), String.starts_with(q, "mode-"))
 
 def left.one(open: Bool, +q: String, rest: String) -> String:
   match open:
@@ -425,7 +454,13 @@ def waiting() -> String: "asking"
 
 # ---------- Hearing rules (HEAR.bend) ----------
 
-# A question's kind is how its name starts: law-, mode-, gate-.
+# A question's kind is how its name starts: law-, mode-, gate-, timer-, skill-.
+def is_timer(+q: String) -> Bool:
+  String.starts_with(q, "timer-")
+
+def is_skill(+q: String) -> Bool:
+  String.starts_with(q, "skill-")
+
 def is_law(+q: String) -> Bool:
   String.starts_with(q, "law-")
 

@@ -47,6 +47,38 @@ Until they answer, the turn waits, with no time limit. Nothing is tried twice.
 The question shows in the message box's place, with what would change; the conversation keeps one
 line of what was answered. A refused action is marked "not run" and changes no count of files.
 
+## Resources and skills
+
+The harness gives resources that don't know what they are for: the project's files, the commands the
+mode allows, a clock to be called again. A skill is your own orientation for using them in one context:
+when to use it, what it needs, the steps, when to stay silent, what to do alone and what to ask first,
+where to speak (SKILL.bend).
+
+The chat writes a skill when you ask ("save that as a skill"), and you see its whole text before it is
+kept: Save skill, or Don't save. A skill is a file of the project (.laweditor/skills), plain text you
+can open and change. The chat is told the project's skills at every turn, and reads a skill's file
+before using it. A skill says how; a timer says when.
+
+## Timers
+
+The chat has no clock: it only answers when it is called. To come back by itself it asks for a timer
+(TIMER.bend), and the server keeps the clock (CLOCK.bend).
+
+| Rule                                   | What it means                                                    |
+|----------------------------------------|------------------------------------------------------------------|
+| You are asked first                    | Set timer, or Don't set, with how often and what it will do      |
+| The clock is the server's              | A timer comes due only while the server runs                     |
+| A timer's turn is an ordinary turn     | Same conversation, AI and mode; what needs your yes still waits  |
+| A timer sets no timer                  | A turn a timer started proposes none                             |
+| A missed time is one turn              | The hours a computer slept through never start a row of turns    |
+| Its first turn is at its next time     | Never when it is set; laweditor timers test <n> starts one now   |
+| It goes on until you say               | Pause, resume or stop it: laweditor timers                       |
+| There is a most                        | 20 per project; days at a time of day, or a span of 1 minute to 30 days |
+
+Each time a timer comes due costs a whole turn of the AI, even when it has nothing new to say.
+Looking at the clock costs nothing. The timers are files in the project's .laweditor/timers:
+laweditor timers lists them; pause <n>, resume <n>, test <n> and stop <n> do the rest.
+
 ## Reading the page
 
 The project's page opens beside the chat, in a frame that is always the same (INSPECT.bend). Its bar has
@@ -86,3 +118,7 @@ chat_only_reads, chat_claude_reads, chat_codex_reads, chat_never_changes
 - Claude Code: a mode picker under the field; asking before an action; rules per tool.
 - Codex: a read-only mode as the safe start.
 - Hermes: allow once, for the session, or never.
+- Hermes: the process that is always on keeps the clock and looks every minute; a turn a timer started can't set timers.
+- Claude Code: a time that was missed starts one turn, not one per miss.
+- Grok Bot: a skill is how and a routine is when; do the task once, save the way as a skill, then put it on a schedule; its first run is at its next time; Pause, Test, Edit and Delete.
+- OpenClaw: the timer's turn happens in the conversation itself, where the person already looks.

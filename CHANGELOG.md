@@ -14,6 +14,40 @@ What the person asked for, as goals. Each one becomes an iteration when it's pic
 - When a project is done, the chat shows a link that opens its folder on the computer.
 - A main chat that opens other chats (NEXT.md: options B and C).
 
+## 0.1.14 (2026-11-21, not validated by the owner yet)
+
+Skills and timers: the chat keeps your way of doing a thing, and comes back by itself to do it. The model, as the owner put it: the harness gives **resources** that don't know what they are for (the clock is one), and a **skill** is the person's own orientation for using them in one context. The flow follows Grok Bot's skills and routines (https://docs.x.ai/grok-bot/skills-routines-and-automations): do the task once, save the way as a skill, then put it on a schedule. From the artifacts "Relógio do harness" (https://claude.ai/artifact/8TyCwbaCNidwTLhiiVFV81) and "Recurso e skill" (https://claude.ai/artifact/F2VoBW12JbWLyiUS5fuLKF).
+
+**Skills** (`harness/SKILL.bend`, `harness/SKILL.md`)
+
+- **You ask, the chat writes, you read, the engine saves.** "Save that as a skill called Count the notes": the chat ends its reply with the skill, every line marked (`SKILL: "name"`, then `SKILL|` lines). The question shows its whole text in the message box's place: Save skill, or Don't save. A name that is already a skill asks to replace it. The chat still only reads: the engine writes the file.
+- **A skill is a file of the project**: `.laweditor/skills/<name>.md`, plain text you can open and change.
+- **The chat knows the project's skills.** Each turn it is told their names and files, and reads a skill's file before using it, when you name it or a timer does.
+- **Chat › Context** shows `SKILL.md` as it is.
+
+**Timers** (`harness/TIMER.bend`, `harness/TIMER.md`, `engine/CLOCK.bend`)
+
+- **The chat asks for a timer** with one line, and you answer Set timer or Don't set, with when and what it will do shown. Three kinds: on days at a time of day (`weekdays 10:00`, `mon,thu 10:30`, `daily`, `weekends`), after a span (`every 4h`), or once (`in 30m`). A time of day is this computer's own: the engine asks `date` how far its clock is from the world's, at every look.
+- **The server keeps the clock.** Every 30 seconds it looks at every project's timers; a look calls no model. A timer that came due starts a turn in the conversation that set it, with the same AI, model and mode: a new event, `timer`, which every window shows as the turn's first line and the chat reads as the app speaking. A conversation that is busy is tried again at the next look; one that was deleted takes its timers with it.
+- **Its first turn is at its next time**, never when it is set. `laweditor timers test <n>` starts one now, and leaves its time as it was.
+- **It goes on until you say.** `laweditor timers` lists them; `pause <n>`, `resume <n>` and `stop <n>` do the rest. A paused timer is kept and never comes due. (A first draft ended every timer after 7 days, as Claude Code does: wrong for a standing job, and gone.)
+- **Timers are files** (`.laweditor/timers/`, one each), and the time is the computer's calendar: Bend's own `IO.now` counts from when the program started, so it can't outlive a restart.
+- **The limits, in one file**: 20 per project; a span from 1 minute to 30 days; a turn a timer started sets none; after a turn, the next time is counted from now, so the hours a computer slept through start one turn.
+- **Always on** (`service.sh install`): launchd on macOS, systemd on Linux keeps the server running from login, and starts it again if it stops.
+
+**Tested**, on a server of its own built in a folder apart, with a real chat (Claude, Only read):
+
+- The whole path: a task ("count the lines in NOTES.md"), then "save that as a skill called Count the notes" (the question showed the text; Save skill wrote the file), then "run that skill every weekday at 10:00" (the timer was kept for Monday 10:00, asked on a Saturday), then `timers test 1` (a turn started at once, read the skill and answered as the first time; the timer's time didn't move).
+- `timers pause`, `resume`, `stop`, and a number that isn't there. A weekday timer two hours late, beside a paused one whose time had passed: the clock started one turn, kept the late one for Monday 10:00, and left the paused one alone.
+- The page, in a browser driven by script: the skill question with its text, the timer question, a timer's turn, `SKILL.md` and `TIMER.md` in Context; no error in the console.
+- The rules on sample values: days and times (weekdays, mon,thu, daily, weekends, a zone ahead of the world's clock and one behind), lines that aren't timers, a late timer, pause and resume; two skills in one reply, a heading with no name, the text a person reads.
+- Earlier, before days and pause: a timer once in a minute, one whose conversation was gone, the most of 20, a server restarted with timers kept.
+- `bun run check` passes.
+
+**Not tested**: `service.sh` on any computer; a timer in Ask before changes, whose action waits for a yes with nobody there; Codex; a computer that really slept; summer time changing; two timers of one conversation due at the same look (the second waits for the next); replacing a skill with a real chat.
+
+**Not yet**: the skills and the timers in the app (a list, pause, test: they need a design first); skills shared by every project; the chat suggesting a skill or a timer by itself, beyond what `SKILL.md` asks of it; a check that runs before the model is called, so a timer with nothing new costs nothing; an answer that stays silent; a timer started by something that happens (a message, a build) and not by the clock; a notice outside the app; the other resources (a browser, accounts of the agent's own); the laws of `TIMER.bend` and `SKILL.bend` (NEXT.md); the computer in the cloud.
+
 ## 0.1.13 (2026-11-19, not validated by the owner yet)
 
 On Bend-UI 1.1.29 (the inspect extension). The first piece of the artifact system: the frame, and the three tools that need nothing from the chat. From the "Ferramentas do Artefato" artifact (https://claude.ai/artifact/WxbKa5dA3bCtNTKhCYsz4j), with the tools on the bar (its option A).
